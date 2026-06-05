@@ -13,16 +13,7 @@ export async function GET() {
       db.botInstallation.findMany({ where: { workspaceId: session.workspaceId } }),
     ])
 
-    if (decisions === 0) {
-      const workspace = await db.workspace.findUnique({ where: { id: session.workspaceId } })
-      if (workspace) {
-        const repoName = repos[0]?.fullName || `${session.user.githubLogin}/mnemo`
-        const { seedWorkspace } = await import('@/lib/seed')
-        await seedWorkspace(session.workspaceId, workspace.hindsightBankId, repoName)
-        decisions = await db.decision.count({ where: { workspaceId: session.workspaceId } })
-      }
-    }
-
+    // decisions is already retrieved via db.decision.count
     return NextResponse.json({
       user: {
         id: session.user.id,
