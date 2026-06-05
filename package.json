@@ -5,7 +5,7 @@
   "description": "Engineering deja vu and pre-mortem agent powered by Hindsight memory.",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db push --skip-generate && next build",
+    "build": "prisma generate && prisma db push && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
