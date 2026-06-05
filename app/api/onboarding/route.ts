@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     });
 
     const decisions = memories.map((m: any) => {
-      const dbDec = dbDecisions.find(d => d.hindsightId === m.id);
+      const dbDec = dbDecisions.find((d: any) => d.hindsightId === m.id);
       const record = dbDec ? mapDbDecisionToRecord(dbDec) : {
         id: m.id,
         title: m.content.slice(0, 60),
