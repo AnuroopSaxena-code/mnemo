@@ -45,14 +45,20 @@ export async function extractDecision(rawText: string, context: string): Promise
   return res.choices[0].message.content ?? rawText
 }
 
-export async function synthesiseAnswer(query: string, memories: unknown[]): Promise<string> {
+export async function synthesiseAnswer(query: string, memories: any[]): Promise<string> {
+  // Truncate memories to prevent Groq 12,000 TPM rate limit errors on the free tier
+  const safeMemories = memories.map(m => ({
+    id: m.id,
+    content: typeof m.content === 'string' ? m.content.slice(0, 1500) + (m.content.length > 1500 ? '...' : '') : m.content
+  }))
+
   const res = await groq.chat.completions.create({
     model: MODEL,
     temperature: 0.1,
     max_tokens: 400,
     messages: [
       { role: 'system', content: ANSWER_PROMPT },
-      { role: 'user', content: `Question: ${query}\n\nMemories: ${JSON.stringify(memories)}` }
+      { role: 'user', content: `Question: ${query}\n\nMemories: ${JSON.stringify(safeMemories)}` }
     ]
   })
   return res.choices[0].message.content ?? 'No answer generated.'
