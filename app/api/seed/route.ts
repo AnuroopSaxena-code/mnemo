@@ -4,6 +4,10 @@ import { getHindsightClient, hasHindsightKey, HINDSIGHT_BANK_ID } from "@/lib/hi
 import { retainLocalDecision } from "@/lib/local-memory";
 import { seedDecisions } from "@/lib/seed-decisions";
 
+export async function GET() {
+  return POST();
+}
+
 export async function POST() {
   if (process.env.ENABLE_SEED_ROUTE === "false") {
     return NextResponse.json({ error: "Seed route is disabled." }, { status: 403 });
