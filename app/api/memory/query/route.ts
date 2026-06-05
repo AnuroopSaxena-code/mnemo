@@ -40,13 +40,14 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const { query } = await req.json()
+    const { query, repoFullName } = await req.json()
     if (!query?.trim()) return NextResponse.json({ error: 'Query required' }, { status: 400 })
 
     const workspace = await db.workspace.findUnique({ where: { id: session.workspaceId } })
     if (!workspace) return NextResponse.json({ error: 'Workspace not found' }, { status: 404 })
 
-    const memories = await recall(workspace.hindsightBankId, query, 5)
+    const allMemories = await recall(workspace.hindsightBankId, query, 15)
+    const memories = repoFullName ? allMemories.filter((m: any) => m.metadata?.repoFullName === repoFullName).slice(0, 5) : allMemories.slice(0, 5);
     if (memories.length === 0) {
       return NextResponse.json({
         mode: "with-memory",

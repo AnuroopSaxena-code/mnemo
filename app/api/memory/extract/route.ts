@@ -7,10 +7,10 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { text, source, repoFullName } = await req.json()
+    const { text, source, sourceName } = await req.json()
     if (!text?.trim()) return NextResponse.json({ error: 'Text required' }, { status: 400 })
 
-    const context = `${source ?? 'manual'} in ${repoFullName ?? 'unknown'}`
+    const context = `${source ?? 'manual'} in ${sourceName ?? 'unknown'}`
     const extractedText = await extractDecision(text, context)
     const parsed = parseExtraction(extractedText)
 

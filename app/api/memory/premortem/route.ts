@@ -41,14 +41,15 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { text, source, sourceName } = await req.json()
+    const { text, source, sourceName, repoFullName } = await req.json()
     if (!text?.trim()) return NextResponse.json({ error: 'Text required' }, { status: 400 })
 
     const workspace = await db.workspace.findUnique({ where: { id: session.workspaceId } })
     if (!workspace) return NextResponse.json({ error: 'Workspace not found' }, { status: 404 })
 
     // 1. Recall similar memories from Hindsight
-    const memories = await recall(workspace.hindsightBankId, text, 5)
+    const allMemories = await recall(workspace.hindsightBankId, text, 15)
+    const memories = repoFullName ? allMemories.filter((m: any) => m.metadata?.repoFullName === repoFullName).slice(0, 5) : allMemories.slice(0, 5);
 
     if (memories.length === 0) {
       const extracted = await extractDecision(text, `${source ?? 'manual'} in ${sourceName ?? 'unknown'}`)

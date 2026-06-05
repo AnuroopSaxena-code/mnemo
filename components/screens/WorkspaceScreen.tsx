@@ -59,7 +59,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
   // 2. Fetch database-retained decisions
   const fetchDbDecisions = useCallback(async () => {
     try {
-      const res = await fetch("/api/decisions");
+      const res = await fetch(`/api/decisions?repoFullName=${encodeURIComponent(activeRepo)}`);
       if (res.ok) {
         const data = await res.json();
         setDbDecisions(data.decisions);
@@ -67,7 +67,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
     } catch (err) {
       console.warn("Failed fetching DB decisions:", err);
     }
-  }, []);
+  }, [activeRepo]);
 
   useEffect(() => {
     fetchDbDecisions();
@@ -146,6 +146,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                   onDecisionClick={setDetailDecision}
                   onAddDecision={handleAddDecision}
                   showcaseMode={false}
+                  activeRepo={activeRepo}
                 />
               </motion.div>
             )}
@@ -162,6 +163,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                   onDecisionClick={setDetailDecision}
                   suggestedQueries={suggestedQueries}
                   showcaseMode={false}
+                  activeRepo={activeRepo}
                 />
               </motion.div>
             )}
@@ -177,6 +179,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 <TimelineTab
                   decisions={activeDecisionsList}
                   onDecisionClick={setDetailDecision}
+                  activeRepo={activeRepo}
                 />
               </motion.div>
             )}
@@ -193,6 +196,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                   decisions={activeDecisionsList}
                   onDecisionClick={setDetailDecision}
                   showcaseMode={false}
+                  activeRepo={activeRepo}
                 />
               </motion.div>
             )}
@@ -205,7 +209,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <SourcesTab />
+                <SourcesTab activeRepo={activeRepo} />
               </motion.div>
             )}
           </AnimatePresence>

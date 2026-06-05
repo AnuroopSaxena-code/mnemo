@@ -22,12 +22,6 @@ const TABS = [
   { id: "sources", label: "source inbox", index: "05" },
 ];
 
-const INTEGRATIONS = [
-  { id: "github", label: "GitHub App", connectUrl: "/api/auth/login/github" },
-  { id: "slack", label: "Slack Bot", connectUrl: "/api/integrations/slack/connect" },
-  { id: "discord", label: "Discord Bot", connectUrl: "/api/integrations/discord/connect" },
-];
-
 async function handleLogout() {
   await fetch("/api/auth/logout", { method: "POST" });
   window.location.reload();
@@ -43,10 +37,6 @@ export function Sidebar({
   authInfo,
   onAddRepoClick,
 }: SidebarProps) {
-  const connectedPlatforms = authInfo?.integrations
-    ? authInfo.integrations.map((i: any) => i.platform)
-    : [];
-
   return (
     <aside
       style={{
@@ -241,74 +231,6 @@ export function Sidebar({
         </ul>
       </nav>
 
-      {/* Active Syncs panel — dynamic with CONNECT buttons */}
-      <nav style={{ padding: "0 24px", marginBottom: 32 }} aria-label="Integrations status">
-        <p
-          className="font-mono"
-          style={{
-            fontSize: 9,
-            color: "var(--color-ink-muted)",
-            textTransform: "uppercase",
-            letterSpacing: "0.15em",
-            margin: "0 0 12px",
-          }}
-        >
-          active syncs
-        </p>
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-          {INTEGRATIONS.map((item) => {
-            const isConnected = connectedPlatforms.includes(item.id);
-            return (
-              <li key={item.id} style={{ display: "flex", alignItems: "center", fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--color-ink-dim)" }}>
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: isConnected ? "var(--color-green)" : "var(--color-accent)",
-                    marginRight: 10,
-                    flexShrink: 0,
-                    boxShadow: isConnected ? "0 0 8px var(--color-green)" : "none",
-                  }}
-                />
-                {item.label}
-                {isConnected ? (
-                  <span style={{ marginLeft: "auto", fontSize: 8, color: "var(--color-green)" }}>
-                    LIVE
-                  </span>
-                ) : (
-                  <a
-                    href={item.connectUrl}
-                    style={{
-                      marginLeft: "auto",
-                      fontSize: 8,
-                      color: "var(--color-accent)",
-                      textDecoration: "none",
-                      fontFamily: "var(--font-mono)",
-                      letterSpacing: "0.05em",
-                      padding: "2px 6px",
-                      border: "1px solid var(--color-accent)",
-                      borderRadius: 3,
-                      transition: "background 150ms ease, color 150ms ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.target as HTMLElement).style.background = "var(--color-accent)";
-                      (e.target as HTMLElement).style.color = "var(--color-bg)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.target as HTMLElement).style.background = "transparent";
-                      (e.target as HTMLElement).style.color = "var(--color-accent)";
-                    }}
-                  >
-                    CONNECT
-                  </a>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
       {/* Footer with decision count + Logout */}
       <footer
         style={{
@@ -371,10 +293,6 @@ export function MobileSidebar({
   authInfo,
   onAddRepoClick,
 }: SidebarProps & { onClose: () => void }) {
-  const connectedPlatforms = authInfo?.integrations
-    ? authInfo.integrations.map((i: any) => i.platform)
-    : [];
-
   return (
     <motion.div
       style={{
@@ -540,62 +458,6 @@ export function MobileSidebar({
                 </button>
               </li>
             )}
-          </ul>
-        </nav>
-
-        {/* Mobile Active Syncs panel with CONNECT buttons */}
-        <nav style={{ marginTop: 24 }} aria-label="Integrations status">
-          <p
-            className="font-mono"
-            style={{
-              fontSize: 10,
-              color: "var(--color-ink-muted)",
-              margin: "0 0 12px",
-            }}
-          >
-            active syncs
-          </p>
-          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-            {INTEGRATIONS.map((item) => {
-              const isConnected = connectedPlatforms.includes(item.id);
-              return (
-                <li key={item.id} style={{ display: "flex", alignItems: "center", fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--color-ink-dim)" }}>
-                  <span
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: "50%",
-                      background: isConnected ? "var(--color-green)" : "var(--color-accent)",
-                      marginRight: 10,
-                      flexShrink: 0,
-                      boxShadow: isConnected ? "0 0 8px var(--color-green)" : "none",
-                    }}
-                  />
-                  {item.label}
-                  {isConnected ? (
-                    <span style={{ marginLeft: "auto", fontSize: 9, color: "var(--color-green)" }}>
-                      LIVE
-                    </span>
-                  ) : (
-                    <a
-                      href={item.connectUrl}
-                      style={{
-                        marginLeft: "auto",
-                        fontSize: 9,
-                        color: "var(--color-accent)",
-                        textDecoration: "none",
-                        fontFamily: "var(--font-mono)",
-                        padding: "2px 6px",
-                        border: "1px solid var(--color-accent)",
-                        borderRadius: 3,
-                      }}
-                    >
-                      CONNECT
-                    </a>
-                  )}
-                </li>
-              );
-            })}
           </ul>
         </nav>
 

@@ -13,7 +13,11 @@ interface ParsedDecision {
   inferred?: boolean;
 }
 
-export function SourcesTab() {
+interface SourcesTabProps {
+  activeRepo?: string;
+}
+
+export function SourcesTab({ activeRepo }: SourcesTabProps) {
   const [mode, setMode] = useState<"discover" | "manual">("discover");
   const [step, setStep] = useState<1 | 2>(1);
   const [text, setText] = useState("");
@@ -35,7 +39,11 @@ export function SourcesTab() {
     setError(null);
     setHasScanned(true);
     try {
-      const res = await fetch("/api/memory/discover");
+      const res = await fetch("/api/memory/discover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoFullName: activeRepo })
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Scan failed");
       setDiscovered(data.discovered || []);
@@ -54,7 +62,7 @@ export function SourcesTab() {
       const res = await fetch("/api/memory/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, source: sourceType, repoFullName: sourceName }),
+        body: JSON.stringify({ text, source: sourceType, repoFullName: activeRepo, sourceName: sourceName }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Extraction failed");
@@ -79,7 +87,8 @@ export function SourcesTab() {
           text: `Inferred from codebase: ${decision.decision}. Rationale: ${decision.rationale}`, 
           extractedText: `DECISION: ${decision.decision}\nRATIONALE: ${decision.rationale}\nSCOPE: ${decision.scope}`, 
           source: "github", 
-          repoFullName: "Inferred from codebase structure" 
+          repoFullName: activeRepo,
+          sourceName: "Inferred from codebase structure" 
         }),
       });
       const data = await res.json();
@@ -107,7 +116,8 @@ export function SourcesTab() {
           text, 
           extractedText, 
           source: sourceType, 
-          repoFullName: sourceName 
+          repoFullName: activeRepo,
+          sourceName: sourceName 
         }),
       });
       const data = await res.json();

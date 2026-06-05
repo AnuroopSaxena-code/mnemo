@@ -8,6 +8,7 @@ interface OnboardingTabProps {
   onDecisionClick: (decision: DecisionRecord) => void;
   decisions: DecisionRecord[];
   showcaseMode?: boolean;
+  activeRepo?: string;
 }
 
 // Options are dynamically computed inside the component
@@ -16,18 +17,23 @@ export function OnboardingTab({
   onDecisionClick,
   decisions,
   showcaseMode,
+  activeRepo,
 }: OnboardingTabProps) {
   // Compute dynamic topics based on existing decisions
   const dynamicTopics = Array.from(new Set(decisions.map(d => d.scope || "General Architecture"))).filter(s => s && s.toLowerCase() !== "global" && s.toLowerCase() !== "not stated");
   const SERVICE_OPTIONS = [
-    { id: "full-codebase", label: "Full Codebase Overview" },
+    { id: activeRepo || "full-codebase", label: activeRepo ? `${activeRepo} Overview` : "Full Codebase Overview" },
     ...dynamicTopics.map(topic => ({ id: topic, label: `Component: ${topic}` }))
   ];
 
-  const [selectedService, setSelectedService] = useState("full-codebase");
+  const [selectedService, setSelectedService] = useState(activeRepo || "full-codebase");
   const [loading, setLoading] = useState(false);
   const [brief, setBrief] = useState<OnboardingBrief | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedService(activeRepo || "full-codebase");
+  }, [activeRepo]);
 
   useEffect(() => {
     async function loadBrief() {
@@ -37,7 +43,11 @@ export function OnboardingTab({
         const response = await fetch("/api/onboarding", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ service: selectedService, bankId: showcaseMode ? "mnemo" : undefined }),
+          body: JSON.stringify({ 
+            service: selectedService, 
+            bankId: showcaseMode ? "mnemo" : undefined,
+            repoFullName: activeRepo 
+          }),
         });
         const data = await response.json();
         if (!response.ok)
@@ -50,7 +60,7 @@ export function OnboardingTab({
       }
     }
     loadBrief();
-  }, [selectedService, showcaseMode]);
+  }, [selectedService, showcaseMode, activeRepo]);
 
   return (
     <div

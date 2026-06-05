@@ -7,9 +7,10 @@ import { scoreDecisionHealth } from "@/lib/health";
 interface TimelineTabProps {
   decisions: DecisionRecord[];
   onDecisionClick: (decision: DecisionRecord) => void;
+  activeRepo?: string;
 }
 
-export function TimelineTab({ decisions, onDecisionClick }: TimelineTabProps) {
+export function TimelineTab({ decisions, onDecisionClick, activeRepo }: TimelineTabProps) {
   const [search, setSearch] = useState("");
   const [inferredDecisions, setInferredDecisions] = useState<DecisionRecord[]>([]);
   const [isInferring, setIsInferring] = useState(false);
@@ -31,7 +32,11 @@ export function TimelineTab({ decisions, onDecisionClick }: TimelineTabProps) {
     setIsInferring(true);
     setError(null);
     try {
-      const res = await fetch('/api/decisions/infer');
+      const res = await fetch('/api/decisions/infer', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoFullName: activeRepo })
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to infer timeline");
       setInferredDecisions(data.inferred || []);

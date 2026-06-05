@@ -9,7 +9,8 @@ import { groq, MODEL } from "@/lib/groq";
 
 const schema = z.object({
   service: z.string().min(2),
-  bankId: z.string().optional()
+  bankId: z.string().optional(),
+  repoFullName: z.string().optional()
 });
 
 function mapDbDecisionToRecord(d: any) {
@@ -66,9 +67,10 @@ export async function POST(request: Request) {
     }
 
     const query = `What decisions should a new engineer know before working on ${body.service}?`;
-    const memories = await recall(targetBankId, query, 8);
+    const memories = await recall(targetBankId, query, 30);
+    const repoMemories = body.repoFullName ? memories.filter((m: any) => m.metadata?.repoFullName === body.repoFullName) : memories;
 
-    const hindsightIds = memories.map((m: any) => m.id).filter(Boolean);
+    const hindsightIds = repoMemories.map((m: any) => m.id).filter(Boolean);
     const dbDecisions = await db.decision.findMany({
       where: { hindsightId: { in: hindsightIds } }
     });
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
     const explicitDecisions = [];
     const unknownMemories = [];
 
-    for (const m of memories) {
+    for (const m of repoMemories) {
       const dbDec = dbDecisions.find((d: any) => d.hindsightId === m.id);
       if (dbDec) {
         const record = mapDbDecisionToRecord(dbDec);

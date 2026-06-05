@@ -8,6 +8,7 @@ interface AskMemoryTabProps {
   onDecisionClick: (decision: DecisionRecord) => void;
   suggestedQueries: string[];
   showcaseMode?: boolean;
+  activeRepo?: string;
 }
 
 /** Split answer text into sentences for staggered reveal */
@@ -21,6 +22,7 @@ export function AskMemoryTab({
   onDecisionClick,
   suggestedQueries,
   showcaseMode,
+  activeRepo,
 }: AskMemoryTabProps) {
   const [query, setQuery] = useState("");
   const [useMemory, setUseMemory] = useState(true);
@@ -42,7 +44,7 @@ export function AskMemoryTab({
       const response = await fetch("/api/memory/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify({ query: q, repoFullName: activeRepo }),
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || "Request failed.");

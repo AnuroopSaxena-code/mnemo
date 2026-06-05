@@ -6,11 +6,12 @@ import { groq, MODEL } from '@/lib/groq'
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
+    const { repoFullName } = await request.json();
     const workspace = await db.workspace.findUnique({
       where: { id: session.workspaceId }
     })
@@ -20,13 +21,16 @@ export async function GET() {
 
     // Query for architectural patterns to infer history
     const query = "Core architecture, libraries, infrastructure, and main design patterns of the codebase.";
-    const memories = await recall(workspace.hindsightBankId, query, 12);
+    const memories = await recall(workspace.hindsightBankId, query, 30);
+    
+    // Filter memories by the current repository
+    const repoMemories = memories.filter((m: any) => m.metadata?.repoFullName === repoFullName);
 
-    if (memories.length === 0) {
+    if (repoMemories.length === 0) {
       return NextResponse.json({ inferred: [] });
     }
 
-    const safeMemories = memories.map((m: any) => ({
+    const safeMemories = repoMemories.map((m: any) => ({
       id: m.id,
       content: typeof m.content === 'string' ? m.content.slice(0, 1000) : m.content
     }));

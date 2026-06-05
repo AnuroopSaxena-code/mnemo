@@ -6,21 +6,23 @@ import type { DecisionRecord, PremortemResult, SourceType, OperationBadge } from
 
 
 interface PreMortemTabProps {
-  onDecisionClick: (decision: DecisionRecord) => void;
-  onAddDecision: (newDec: DecisionRecord) => void;
   initialProposal?: string;
   initialSourceType?: SourceType;
   initialSourceDetail?: string;
+  onDecisionClick: (decision: DecisionRecord) => void;
+  onAddDecision: (decision: DecisionRecord) => void;
   showcaseMode?: boolean;
+  activeRepo?: string;
 }
 
 export function PreMortemTab({
+  initialProposal = "",
+  initialSourceType = "manual",
+  initialSourceDetail = "",
   onDecisionClick,
   onAddDecision,
-  initialProposal,
-  initialSourceType,
-  initialSourceDetail,
   showcaseMode,
+  activeRepo,
 }: PreMortemTabProps) {
   const [proposal, setProposal] = useState(initialProposal || "");
   const [sourceType, setSourceType] = useState<SourceType>(
@@ -62,7 +64,12 @@ export function PreMortemTab({
       const res = await fetch("/api/memory/premortem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: proposal, source: sourceType, sourceName: sourceDetail }),
+        body: JSON.stringify({ 
+          text: proposal, 
+          source: sourceType, 
+          sourceName: sourceDetail,
+          repoFullName: activeRepo 
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to analyze proposal");

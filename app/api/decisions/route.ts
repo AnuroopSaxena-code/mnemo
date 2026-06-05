@@ -2,13 +2,21 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { searchParams } = new URL(req.url)
+  const repoFullName = searchParams.get('repoFullName')
+
   try {
+    let whereClause: any = { workspaceId: session.workspaceId }
+    if (repoFullName) {
+      whereClause.repoFullName = repoFullName
+    }
+
     let decisions = await db.decision.findMany({
-      where: { workspaceId: session.workspaceId },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       take: 100,
     })
