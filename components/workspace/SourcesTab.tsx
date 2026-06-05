@@ -141,10 +141,10 @@ export function SourcesTab({ activeRepo }: SourcesTabProps) {
     <div style={{ padding: "32px", display: "flex", flexDirection: "column", gap: "24px", minHeight: "100vh", maxWidth: "800px" }}>
       <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h2 className="font-heading" style={{ fontSize: "18px", color: "var(--color-ink)", fontWeight: 400, margin: "0 0 4px" }}>
+          <h2 className="font-heading" style={{ fontSize: "clamp(18px, 2.5vw, 24px)", color: "var(--color-ink)", fontWeight: 400, margin: "0 0 4px" }}>
             Source Inbox
           </h2>
-          <p className="font-mono" style={{ fontSize: "11px", color: "var(--color-ink-muted)", margin: 0 }}>
+          <p className="font-mono" style={{ fontSize: "clamp(11px, 1.2vw, 13px)", color: "var(--color-ink-muted)", margin: 0 }}>
             Discover and ingest engineering decisions into memory.
           </p>
         </div>
@@ -179,7 +179,7 @@ export function SourcesTab({ activeRepo }: SourcesTabProps) {
       {mode === "discover" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div style={{ padding: "24px", background: "var(--color-surface-2)", borderRadius: "var(--radius)", textAlign: "center" }}>
-            <p className="font-body" style={{ color: "var(--color-ink-dim)", fontSize: "14px", marginBottom: "16px" }}>
+            <p className="font-body" style={{ color: "var(--color-ink-dim)", fontSize: "clamp(14px, 1.6vw, 16px)", marginBottom: "16px" }}>
               Mnemo can scan your raw codebase via Hindsight to infer structural design decisions that were never formally recorded.
             </p>
             <button onClick={handleScan} disabled={loading} className="cta-amber btn-press" style={{ padding: "10px 24px" }}>
@@ -188,16 +188,16 @@ export function SourcesTab({ activeRepo }: SourcesTabProps) {
           </div>
 
           {hasScanned && !loading && discovered.length === 0 && (
-            <p className="font-mono" style={{ textAlign: "center", color: "var(--color-ink-muted)", fontSize: "12px", padding: "20px" }}>
+            <p className="font-mono" style={{ textAlign: "center", color: "var(--color-ink-muted)", fontSize: "clamp(12px, 1.4vw, 14px)", padding: "20px" }}>
               No undocumented structural decisions found.
             </p>
           )}
 
           {discovered.map((dec, idx) => (
-            <div key={idx} style={{ padding: "16px", background: "var(--color-surface-1)", borderLeft: "2px solid var(--color-accent)", borderRadius: "var(--radius)", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div key={idx} style={{ padding: "16px", background: "var(--color-surface-1)", borderLeft: "2px solid var(--color-accent)", borderRadius: "var(--radius)", display: "flex", flexDirection: "column", gap: "12px", wordBreak: "break-word", overflowWrap: "anywhere" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
-                  <h4 className="font-mono" style={{ margin: "0 0 4px", fontSize: "14px", color: "var(--color-ink)", fontWeight: "bold" }}>{dec.decision}</h4>
+                  <h4 className="font-mono" style={{ margin: "0 0 4px", fontSize: "clamp(14px, 1.8vw, 16px)", color: "var(--color-ink)", fontWeight: "bold" }}>{dec.decision}</h4>
                   <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-accent)", background: "rgba(224, 130, 49, 0.1)", padding: "2px 6px", borderRadius: "var(--radius-sm)", textTransform: "uppercase" }}>AI Generated from Code</span>
                 </div>
                 <button onClick={() => handleStoreDiscovered(dec)} disabled={loading} className="cta-outlined btn-press" style={{ fontSize: "11px", padding: "6px 12px" }}>
@@ -206,12 +206,12 @@ export function SourcesTab({ activeRepo }: SourcesTabProps) {
               </div>
               <div>
                 <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Rationale</span>
-                <p className="font-body" style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--color-ink-dim)" }}>{dec.rationale}</p>
+                <p className="font-body" style={{ margin: "4px 0 0", fontSize: "clamp(13px, 1.5vw, 15px)", color: "var(--color-ink-dim)" }}>{dec.rationale}</p>
               </div>
               <div style={{ display: "flex", gap: "16px" }}>
                 <div>
                   <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Scope</span>
-                  <p className="font-body" style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--color-ink-dim)" }}>{dec.scope}</p>
+                  <p className="font-body" style={{ margin: "4px 0 0", fontSize: "clamp(13px, 1.5vw, 15px)", color: "var(--color-ink-dim)" }}>{dec.scope}</p>
                 </div>
               </div>
             </div>
@@ -242,7 +242,7 @@ export function SourcesTab({ activeRepo }: SourcesTabProps) {
               
               <div>
                 <label className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", display: "block", marginBottom: "4px", textTransform: "uppercase" }}>Raw Content</label>
-                <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Paste the discussion, PR description, or architecture notes here..." style={{ width: "100%", height: "200px", background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", color: "var(--color-ink)", fontFamily: "var(--font-mono)", fontSize: "13px", padding: "12px", resize: "none" }} />
+                <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Paste the discussion, PR description, or architecture notes here..." style={{ width: "100%", height: "200px", background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", color: "var(--color-ink)", fontFamily: "var(--font-mono)", fontSize: "clamp(13px, 1.5vw, 16px)", padding: "12px", resize: "none" }} />
               </div>
 
               <button onClick={handleExtract} disabled={loading || !text.trim()} className="cta-amber btn-press" style={{ alignSelf: "flex-start", padding: "10px 20px" }}>
@@ -251,26 +251,26 @@ export function SourcesTab({ activeRepo }: SourcesTabProps) {
             </motion.div>
           ) : (
             <motion.div key="step2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              <div style={{ padding: "16px", background: "var(--color-surface-1)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)" }}>
-                <h3 className="font-mono" style={{ fontSize: "11px", color: "var(--color-accent)", margin: "0 0 12px", textTransform: "uppercase" }}>Review Extraction</h3>
+              <div style={{ padding: "16px", background: "var(--color-surface-1)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                <h3 className="font-mono" style={{ fontSize: "clamp(11px, 1.2vw, 13px)", color: "var(--color-accent)", margin: "0 0 12px", textTransform: "uppercase" }}>Review Extraction</h3>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div>
                     <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Decision</span>
-                    <p className="font-body" style={{ margin: "4px 0 0", fontSize: "14px", color: "var(--color-ink)" }}>{parsed?.decision || "None"}</p>
+                    <p className="font-body" style={{ margin: "4px 0 0", fontSize: "clamp(14px, 1.8vw, 16px)", color: "var(--color-ink)" }}>{parsed?.decision || "None"}</p>
                   </div>
                   <div>
                     <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Rationale</span>
-                    <p className="font-body" style={{ margin: "4px 0 0", fontSize: "14px", color: "var(--color-ink)" }}>{parsed?.rationale || "None"}</p>
+                    <p className="font-body" style={{ margin: "4px 0 0", fontSize: "clamp(14px, 1.8vw, 16px)", color: "var(--color-ink)" }}>{parsed?.rationale || "None"}</p>
                   </div>
                   <div>
                     <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Scope</span>
-                    <p className="font-body" style={{ margin: "4px 0 0", fontSize: "14px", color: "var(--color-ink)" }}>{parsed?.scope || "global"}</p>
+                    <p className="font-body" style={{ margin: "4px 0 0", fontSize: "clamp(14px, 1.8vw, 16px)", color: "var(--color-ink)" }}>{parsed?.scope || "global"}</p>
                   </div>
                   {parsed && parsed.caveats.length > 0 && (
                     <div>
                       <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Caveats</span>
-                      <ul style={{ margin: "4px 0 0", paddingLeft: "16px", fontSize: "14px", color: "var(--color-ink)" }}>
+                      <ul style={{ margin: "4px 0 0", paddingLeft: "16px", fontSize: "clamp(14px, 1.8vw, 16px)", color: "var(--color-ink)" }}>
                         {parsed.caveats.map((c, i) => <li key={i}>{c}</li>)}
                       </ul>
                     </div>
@@ -278,7 +278,7 @@ export function SourcesTab({ activeRepo }: SourcesTabProps) {
                   {parsed && parsed.alternatives.length > 0 && (
                     <div>
                       <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Alternatives Rejected</span>
-                      <ul style={{ margin: "4px 0 0", paddingLeft: "16px", fontSize: "14px", color: "var(--color-ink)" }}>
+                      <ul style={{ margin: "4px 0 0", paddingLeft: "16px", fontSize: "clamp(14px, 1.8vw, 16px)", color: "var(--color-ink)" }}>
                         {parsed.alternatives.map((a, i) => (
                           <li key={i}><strong>{a.name}</strong>: {a.rejectedBecause}</li>
                         ))}

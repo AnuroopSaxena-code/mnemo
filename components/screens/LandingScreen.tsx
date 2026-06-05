@@ -72,16 +72,16 @@ export function LandingScreen({ onConnect, authError }: LandingScreenProps) {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          maxWidth: "640px",
+          maxWidth: "800px",
           width: "100%",
-          padding: "0 24px",
+          padding: "0 32px",
         }}
       >
         {/* Wordmark */}
         <motion.h1
           className="font-display"
           style={{
-            fontSize: "clamp(56px, 10vw, 88px)",
+            fontSize: "clamp(64px, 12vw, 120px)",
             color: "var(--color-ink)",
             letterSpacing: "0.18em",
             fontWeight: 400,
@@ -100,7 +100,7 @@ export function LandingScreen({ onConnect, authError }: LandingScreenProps) {
         <motion.p
           className="font-mono"
           style={{
-            fontSize: 13,
+            fontSize: "clamp(14px, 2vw, 18px)",
             color: "var(--color-ink-muted)",
             marginTop: 24,
             letterSpacing: "0.02em",
@@ -129,10 +129,10 @@ export function LandingScreen({ onConnect, authError }: LandingScreenProps) {
           animate={{ opacity: 1 }}
           transition={{ delay: 1.0, duration: 0.8 }}
           style={{
-            marginTop: 32,
+            marginTop: 48,
             display: "flex",
-            gap: 32,
-            height: 140,
+            gap: 48,
+            height: "clamp(160px, 30vh, 280px)",
             overflow: "hidden",
             width: "100%",
             maskImage:
@@ -149,10 +149,10 @@ export function LandingScreen({ onConnect, authError }: LandingScreenProps) {
                   key={`l-${i}`}
                   className="font-mono"
                   style={{
-                    fontSize: 11,
+                    fontSize: "clamp(12px, 1.5vw, 15px)",
                     color: "var(--color-ink-ghost)",
                     margin: 0,
-                    padding: "6px 0",
+                    padding: "8px 0",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -172,10 +172,10 @@ export function LandingScreen({ onConnect, authError }: LandingScreenProps) {
                   key={`r-${i}`}
                   className="font-mono"
                   style={{
-                    fontSize: 11,
+                    fontSize: "clamp(12px, 1.5vw, 15px)",
                     color: "var(--color-ink-ghost)",
                     margin: 0,
-                    padding: "6px 0",
+                    padding: "8px 0",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -237,7 +237,7 @@ export function LandingScreen({ onConnect, authError }: LandingScreenProps) {
         style={{
           position: "absolute",
           bottom: 32,
-          fontSize: 10,
+          fontSize: "clamp(11px, 1.2vw, 14px)",
           color: "var(--color-ink-ghost)",
           letterSpacing: "0.06em",
           textAlign: "center",

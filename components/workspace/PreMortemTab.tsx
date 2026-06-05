@@ -196,7 +196,7 @@ export function PreMortemTab({
             <h2
               className="font-heading"
               style={{
-                fontSize: "16px",
+                fontSize: "clamp(16px, 2.5vw, 22px)",
                 color: "var(--color-ink)",
                 fontWeight: 400,
                 margin: "0 0 4px",
@@ -207,7 +207,7 @@ export function PreMortemTab({
             <p
               className="font-mono"
               style={{
-                fontSize: "11px",
+                fontSize: "clamp(11px, 1.2vw, 14px)",
                 color: "var(--color-ink-muted)",
                 lineHeight: "1.4",
                 marginBottom: "16px",
@@ -294,7 +294,7 @@ export function PreMortemTab({
             style={{
               width: "100%",
               height: "260px",
-              fontSize: "13px",
+              fontSize: "clamp(13px, 1.5vw, 16px)",
               padding: "12px",
               background: "var(--color-surface-2)",
               border: "1px solid var(--color-border)",
@@ -409,7 +409,7 @@ export function PreMortemTab({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+                style={{ display: "flex", flexDirection: "column", gap: "16px", wordBreak: "break-word", overflowWrap: "anywhere" }}
               >
                 {/* Warning Level Alert */}
                 <div
@@ -461,7 +461,7 @@ export function PreMortemTab({
                   <h4
                     className="font-mono"
                     style={{
-                      fontSize: "13px",
+                      fontSize: "clamp(13px, 1.5vw, 16px)",
                       fontWeight: "bold",
                       color: "var(--color-ink)",
                       margin: "0 0 6px",
@@ -472,7 +472,7 @@ export function PreMortemTab({
                   <p
                     className="font-body"
                     style={{
-                      fontSize: "14px",
+                      fontSize: "clamp(14px, 1.8vw, 16px)",
                       fontStyle: "italic",
                       color: "var(--color-ink-dim)",
                       margin: 0,
@@ -529,7 +529,7 @@ export function PreMortemTab({
                         <h5
                           className="font-mono"
                           style={{
-                            fontSize: "12px",
+                            fontSize: "clamp(12px, 1.4vw, 14px)",
                             color: "var(--color-accent)",
                             margin: 0,
                             fontWeight: "bold",
@@ -559,7 +559,7 @@ export function PreMortemTab({
                       <p
                         className="font-body"
                         style={{
-                          fontSize: "12px",
+                          fontSize: "clamp(12px, 1.4vw, 14px)",
                           fontStyle: "italic",
                           color: "var(--color-ink-dim)",
                           margin: "0 0 8px",
@@ -587,7 +587,7 @@ export function PreMortemTab({
                         <span
                           className="font-mono"
                           style={{
-                            fontSize: "11px",
+                            fontSize: "clamp(11px, 1.2vw, 14px)",
                             color: "var(--color-ink)",
                           }}
                         >
@@ -746,7 +746,7 @@ export function PreMortemTab({
                     <p
                       className="font-mono"
                       style={{
-                        fontSize: "12px",
+                        fontSize: "clamp(12px, 1.4vw, 14px)",
                         color: "var(--color-ink)",
                         margin: "0 0 6px",
                         overflow: "hidden",

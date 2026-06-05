@@ -73,7 +73,7 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
           <h2
             className="font-heading"
             style={{
-              fontSize: "18px",
+              fontSize: "clamp(18px, 2.5vw, 24px)",
               color: "var(--color-ink)",
               fontWeight: 400,
               margin: "0 0 4px",
@@ -84,7 +84,7 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
           <p
             className="font-mono"
             style={{
-              fontSize: "11px",
+              fontSize: "clamp(11px, 1.2vw, 13px)",
               color: "var(--color-ink-muted)",
               margin: 0,
             }}
@@ -154,7 +154,9 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
                   background: "var(--color-surface-1)",
                   borderLeft: `2px solid ${statusColor}`,
                   borderRadius: "var(--radius)",
-                  padding: "16px",
+                  padding: "20px",
+                  wordBreak: "break-word",
+                  overflowWrap: "anywhere",
                   display: "flex",
                   flexDirection: "column",
                   gap: "12px",
@@ -217,10 +219,10 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
                     <h3
                       className="font-mono"
                       style={{
-                        fontSize: "14px",
+                        fontSize: "clamp(14px, 1.8vw, 16px)",
                         color: "var(--color-ink)",
                         margin: 0,
-                        fontWeight: "bold",
+                        fontWeight: 400,
                       }}
                     >
                       {dec.title}
@@ -272,11 +274,10 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
                 <p
                   className="font-body"
                   style={{
-                    fontSize: "13px",
-                    fontStyle: "italic",
+                    fontSize: "clamp(13px, 1.5vw, 15px)",
                     color: "var(--color-ink-dim)",
                     margin: 0,
-                    lineHeight: 1.5,
+                    lineHeight: "1.5",
                   }}
                 >
                   {dec.decision}
@@ -378,10 +379,12 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
                             <span
                               className="font-mono"
                               style={{
-                                fontSize: "10px",
+                                fontSize: "clamp(10px, 1.2vw, 12px)",
                                 color: "var(--color-ink-dim)",
                                 maxWidth: "160px",
                                 whiteSpace: "normal",
+                                wordBreak: "break-word",
+                                overflowWrap: "anywhere",
                               }}
                             >
                               {evt.summary}
@@ -432,6 +435,8 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
                           background: "var(--color-surface-2)",
                           borderRadius: "var(--radius-sm)",
                           padding: "2px 6px",
+                          wordBreak: "break-word",
+                          overflowWrap: "anywhere",
                         }}
                       >
                         #{tag}
@@ -461,10 +466,10 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
           <p
             className="font-mono"
             style={{
-              fontSize: "12px",
+              fontSize: "clamp(12px, 1.4vw, 14px)",
               color: "var(--color-ink-muted)",
-              textAlign: "center",
               padding: "40px",
+              textAlign: "center",
             }}
           >
             No decisions exist. {decisions.length === 0 && !isInferring && "Click Generate Timeline to analyze your codebase architecture."}

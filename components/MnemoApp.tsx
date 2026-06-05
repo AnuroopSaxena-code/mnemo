@@ -80,7 +80,7 @@ export function MnemoApp({ initialDecisions }: MnemoAppProps) {
           <motion.div
             key="loading"
             className="flex items-center justify-center font-mono"
-            style={{ position: "fixed", inset: 0, zIndex: 10, background: "var(--color-bg)", color: "var(--color-accent)", fontSize: 13 }}
+            style={{ position: "fixed", inset: 0, zIndex: 10, background: "var(--color-bg)", color: "var(--color-accent)", fontSize: "clamp(14px, 2vw, 18px)" }}
             exit={{ opacity: 0 }}
           >
             <div className="blink-cursor">initializing mnemo...</div>

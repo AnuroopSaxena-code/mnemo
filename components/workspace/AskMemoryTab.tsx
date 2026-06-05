@@ -93,7 +93,7 @@ export function AskMemoryTab({
           <h2
             className="font-heading"
             style={{
-              fontSize: "18px",
+              fontSize: "clamp(18px, 2.5vw, 24px)",
               color: "var(--color-ink)",
               fontWeight: 400,
               margin: "0 0 4px",
@@ -104,7 +104,7 @@ export function AskMemoryTab({
           <p
             className="font-mono"
             style={{
-              fontSize: "11px",
+              fontSize: "clamp(11px, 1.2vw, 13px)",
               color: "var(--color-ink-muted)",
               margin: 0,
             }}
@@ -193,7 +193,7 @@ export function AskMemoryTab({
           className="input-minimal"
           style={{
             width: "100%",
-            fontSize: "18px",
+            fontSize: "clamp(16px, 2.5vw, 22px)",
             padding: "16px 0",
             fontFamily: "var(--font-mono)",
             borderBottom: "1px solid var(--color-border)",
@@ -241,7 +241,7 @@ export function AskMemoryTab({
                 padding: "6px 12px",
                 color: "var(--color-ink-muted)",
                 fontFamily: "var(--font-mono)",
-                fontSize: "11px",
+                fontSize: "clamp(11px, 1.2vw, 13px)",
                 cursor: "pointer",
                 transition: "all 150ms ease",
               }}
@@ -322,7 +322,7 @@ export function AskMemoryTab({
                   display: "flex",
                   alignItems: "center",
                   gap: "8px",
-                  fontSize: "10px",
+                  fontSize: "clamp(10px, 1.1vw, 12px)",
                   fontFamily: "var(--font-mono)",
                   color: useMemory
                     ? "var(--color-green)"
@@ -390,6 +390,8 @@ export function AskMemoryTab({
               <div
                 style={{
                   maxWidth: "65ch",
+                  wordBreak: "break-word",
+                  overflowWrap: "anywhere",
                 }}
               >
                 {sentences.map((sentence, i) => (
@@ -404,7 +406,7 @@ export function AskMemoryTab({
                       ease: [0.16, 1, 0.3, 1],
                     }}
                     style={{
-                      fontSize: "17px",
+                      fontSize: "clamp(15px, 2vw, 18px)",
                       fontStyle: "italic",
                       color: "var(--color-ink)",
                       lineHeight: "1.7",
@@ -461,6 +463,8 @@ export function AskMemoryTab({
                               flexDirection: "column",
                               justifyContent: "space-between",
                               gap: "8px",
+                              wordBreak: "break-word",
+                              overflowWrap: "anywhere",
                             }}
                           >
                             <div>
@@ -497,7 +501,7 @@ export function AskMemoryTab({
                               <h4
                                 className="font-mono"
                                 style={{
-                                  fontSize: "12px",
+                                  fontSize: "clamp(12px, 1.4vw, 14px)",
                                   color: "var(--color-ink)",
                                   margin: "0 0 4px",
                                 }}
@@ -507,7 +511,7 @@ export function AskMemoryTab({
                               <p
                                 className="font-body"
                                 style={{
-                                  fontSize: "11px",
+                                  fontSize: "clamp(11px, 1.2vw, 13px)",
                                   fontStyle: "italic",
                                   color: "var(--color-ink-dim)",
                                   margin: 0,

@@ -102,7 +102,7 @@ export function OnboardingTab({
           <h2
             className="font-heading"
             style={{
-              fontSize: "18px",
+              fontSize: "clamp(18px, 2.5vw, 24px)",
               color: "var(--color-ink)",
               fontWeight: 400,
               margin: "0 0 4px",
@@ -113,7 +113,7 @@ export function OnboardingTab({
           <p
             className="font-mono"
             style={{
-              fontSize: "11px",
+              fontSize: "clamp(11px, 1.2vw, 13px)",
               color: "var(--color-ink-muted)",
               margin: 0,
             }}
@@ -210,7 +210,7 @@ export function OnboardingTab({
                 <h3
                   className="font-mono"
                   style={{
-                    fontSize: "10px",
+                    fontSize: "clamp(10px, 1.1vw, 12px)",
                     color: "var(--color-accent)",
                     textTransform: "uppercase",
                     margin: "0 0 6px",
@@ -222,7 +222,7 @@ export function OnboardingTab({
                 <p
                   className="font-body"
                   style={{
-                    fontSize: "15px",
+                    fontSize: "clamp(15px, 1.8vw, 18px)",
                     fontStyle: "italic",
                     color: "var(--color-ink)",
                     lineHeight: 1.6,
@@ -244,7 +244,7 @@ export function OnboardingTab({
                 <h4
                   className="font-mono"
                   style={{
-                    fontSize: "9px",
+                    fontSize: "clamp(9px, 1vw, 11px)",
                     color: "var(--color-ink-muted)",
                     textTransform: "uppercase",
                     margin: 0,
@@ -284,6 +284,8 @@ export function OnboardingTab({
                         borderRadius: "var(--radius)",
                         padding: "16px",
                         position: "relative",
+                        wordBreak: "break-word",
+                        overflowWrap: "anywhere",
                       }}
                     >
                       <div
@@ -299,7 +301,7 @@ export function OnboardingTab({
                           <h5
                             className="font-mono"
                             style={{
-                              fontSize: "13px",
+                              fontSize: "clamp(13px, 1.5vw, 16px)",
                               color: "var(--color-ink)",
                               margin: 0,
                               fontWeight: "bold",
@@ -342,7 +344,7 @@ export function OnboardingTab({
                       <p
                         className="font-body"
                         style={{
-                          fontSize: "14px",
+                          fontSize: "clamp(14px, 1.6vw, 16px)",
                           fontStyle: "italic",
                           color: "var(--color-ink-dim)",
                           lineHeight: "1.5",

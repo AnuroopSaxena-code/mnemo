@@ -59,7 +59,7 @@ export function DecisionDetailScreen({
               background: "transparent",
               border: "none",
               color: "var(--color-ink-muted)",
-              fontSize: 13,
+              fontSize: "clamp(13px, 1.5vw, 15px)",
               cursor: "pointer",
               padding: 0,
             }}
@@ -118,7 +118,7 @@ export function DecisionDetailScreen({
                   <span
                     className="font-mono"
                     style={{
-                      fontSize: 10,
+                      fontSize: "clamp(10px, 1.1vw, 12px)",
                       color:
                         stateColors[event.state] || "var(--color-ink-muted)",
                       textTransform: "capitalize",
@@ -130,7 +130,7 @@ export function DecisionDetailScreen({
                   <span
                     className="font-mono"
                     style={{
-                      fontSize: 9,
+                      fontSize: "clamp(9px, 1vw, 11px)",
                       color: "var(--color-ink-muted)",
                       whiteSpace: "nowrap",
                     }}
@@ -158,11 +158,11 @@ export function DecisionDetailScreen({
         )}
 
         {/* Rationale */}
-        <article style={{ marginBottom: 32 }}>
+        <article style={{ marginBottom: 32, wordBreak: "break-word", overflowWrap: "anywhere" }}>
           <p
             className="font-body"
             style={{
-              fontSize: 18,
+              fontSize: "clamp(16px, 2.5vw, 20px)",
               fontStyle: "italic",
               color: "var(--color-ink)",
               lineHeight: 1.7,
@@ -179,7 +179,7 @@ export function DecisionDetailScreen({
             <h2
               className="font-mono"
               style={{
-                fontSize: 10,
+                fontSize: "clamp(10px, 1.1vw, 12px)",
                 color: "var(--color-ink-muted)",
                 textTransform: "uppercase",
                 letterSpacing: "0.12em",
@@ -204,8 +204,10 @@ export function DecisionDetailScreen({
                   key={alt.name}
                   className="font-mono"
                   style={{
-                    fontSize: 13,
+                    fontSize: "clamp(13px, 1.5vw, 15px)",
                     color: "var(--color-ink-dim)",
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   <span
@@ -246,8 +248,10 @@ export function DecisionDetailScreen({
                   key={caveat}
                   className="font-mono"
                   style={{
-                    fontSize: 13,
+                    fontSize: "clamp(13px, 1.5vw, 15px)",
                     color: "var(--color-accent)",
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   <span style={{ marginRight: 8 }}>\u2691</span>
@@ -278,7 +282,7 @@ export function DecisionDetailScreen({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 12,
+                  fontSize: "clamp(12px, 1.4vw, 14px)",
                   color: "var(--color-bg)",
                   fontFamily: "var(--font-mono)",
                   fontWeight: 600,
@@ -293,7 +297,7 @@ export function DecisionDetailScreen({
                 <p
                   className="font-mono"
                   style={{
-                    fontSize: 12,
+                    fontSize: "clamp(12px, 1.4vw, 14px)",
                     color: "var(--color-ink-dim)",
                     margin: 0,
                   }}
@@ -304,7 +308,7 @@ export function DecisionDetailScreen({
               <p
                 className="font-mono"
                 style={{
-                  fontSize: 11,
+                  fontSize: "clamp(11px, 1.2vw, 13px)",
                   color: "var(--color-ink-muted)",
                   margin: "2px 0 0 0",
                 }}
