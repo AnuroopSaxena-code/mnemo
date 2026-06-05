@@ -10,21 +10,21 @@ interface OnboardingTabProps {
   showcaseMode?: boolean;
 }
 
-const SERVICE_OPTIONS = [
-  { id: "billing-events", label: "Billing Event pipeline (billing-events)" },
-  { id: "auth", label: "Dashboard Authentication (auth)" },
-  { id: "analytics", label: "Analytics & Event Engine (analytics)" },
-  { id: "ci-cd", label: "CI/CD & Deploy Pipelines (ci-cd)" },
-  { id: "sdk", label: "TypeScript client SDK (sdk)" },
-  { id: "integrations", label: "Outbound Integrations (integrations)" },
-];
+// Options are dynamically computed inside the component
 
 export function OnboardingTab({
   onDecisionClick,
   decisions,
   showcaseMode,
 }: OnboardingTabProps) {
-  const [selectedService, setSelectedService] = useState("billing-events");
+  // Compute dynamic topics based on existing decisions
+  const dynamicTopics = Array.from(new Set(decisions.map(d => d.scope || "General Architecture"))).filter(s => s && s.toLowerCase() !== "global" && s.toLowerCase() !== "not stated");
+  const SERVICE_OPTIONS = [
+    { id: "full-codebase", label: "Full Codebase Overview" },
+    ...dynamicTopics.map(topic => ({ id: topic, label: `Component: ${topic}` }))
+  ];
+
+  const [selectedService, setSelectedService] = useState("full-codebase");
   const [loading, setLoading] = useState(false);
   const [brief, setBrief] = useState<OnboardingBrief | null>(null);
   const [error, setError] = useState<string | null>(null);

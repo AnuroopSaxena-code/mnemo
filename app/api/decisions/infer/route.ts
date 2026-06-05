@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
 import { recall } from '@/lib/memory'
+import { groq, MODEL } from '@/lib/groq'
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const session = await getSession()
@@ -22,8 +25,6 @@ export async function GET() {
     if (memories.length === 0) {
       return NextResponse.json({ inferred: [] });
     }
-
-    const { groq, MODEL } = require("@/lib/groq");
 
     const safeMemories = memories.map((m: any) => ({
       id: m.id,

@@ -5,6 +5,7 @@ import { recall } from "@/lib/memory";
 import { getSession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { scoreDecisionHealth } from "@/lib/health";
+import { groq, MODEL } from "@/lib/groq";
 
 const schema = z.object({
   service: z.string().min(2),
@@ -95,8 +96,6 @@ export async function POST(request: Request) {
     let inferredDecisions: any[] = [];
     if (unknownMemories.length > 0) {
       try {
-        const { groq, MODEL } = require("@/lib/groq");
-        
         // Truncate memory content to avoid token limits
         const safeMemories = unknownMemories.map(m => ({
           id: m.id,
@@ -141,7 +140,6 @@ export async function POST(request: Request) {
     let summary = `Before touching ${body.service}, review these structural patterns and recorded decisions to understand the system.`;
     if (allDecisions.length > 0) {
       try {
-        const { groq, MODEL } = require("@/lib/groq");
         const completion = await groq.chat.completions.create({
           model: MODEL,
           temperature: 0.2,

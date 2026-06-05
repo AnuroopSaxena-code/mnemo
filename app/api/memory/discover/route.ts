@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { recall } from "@/lib/memory";
+import { groq, MODEL } from "@/lib/groq";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
@@ -35,8 +38,6 @@ export async function GET(request: Request) {
     if (unknownMemories.length === 0) {
       return NextResponse.json({ discovered: [] });
     }
-
-    const { groq, MODEL } = require("@/lib/groq");
 
     // Truncate to avoid token limits
     const safeMemories = unknownMemories.map((m: any) => ({
