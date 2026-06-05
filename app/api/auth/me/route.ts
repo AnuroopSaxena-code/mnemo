@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
-import { seedWorkspace } from '@/lib/seed'
 
 export async function GET() {
   const session = await getSession()
@@ -18,6 +17,7 @@ export async function GET() {
       const workspace = await db.workspace.findUnique({ where: { id: session.workspaceId } })
       if (workspace) {
         const repoName = repos[0]?.fullName || `${session.user.githubLogin}/mnemo`
+        const { seedWorkspace } = await import('@/lib/seed')
         await seedWorkspace(session.workspaceId, workspace.hindsightBankId, repoName)
         decisions = await db.decision.count({ where: { workspaceId: session.workspaceId } })
       }
