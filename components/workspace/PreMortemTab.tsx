@@ -11,6 +11,7 @@ interface PreMortemTabProps {
   initialProposal?: string;
   initialSourceType?: SourceType;
   initialSourceDetail?: string;
+  showcaseMode?: boolean;
 }
 
 export function PreMortemTab({
@@ -19,6 +20,7 @@ export function PreMortemTab({
   initialProposal,
   initialSourceType,
   initialSourceDetail,
+  showcaseMode,
 }: PreMortemTabProps) {
   const [proposal, setProposal] = useState(initialProposal || demoProposal);
   const [sourceType, setSourceType] = useState<SourceType>(
@@ -60,7 +62,7 @@ export function PreMortemTab({
       const res = await fetch("/api/premortem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText: proposal, sourceType }),
+        body: JSON.stringify({ rawText: proposal, sourceType, bankId: showcaseMode ? "mnemo" : undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to analyze proposal");
@@ -104,7 +106,7 @@ export function PreMortemTab({
       const res = await fetch("/api/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText: proposal, sourceType, source: sourceDetail }),
+        body: JSON.stringify({ rawText: proposal, sourceType, source: sourceDetail, bankId: showcaseMode ? "mnemo" : undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to retain");

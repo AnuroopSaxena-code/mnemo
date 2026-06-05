@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { verifyDiscordSignature, formatDiscordResponse } from "@/lib/discord";
 import { answerQuestion } from "@/lib/answer";
 import { retainDecision } from "@/lib/retain";
+import { resolveWorkspace } from "@/lib/workspace";
+import { db } from "@/lib/db";
+import { generateId } from "@/lib/crypto";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -25,19 +28,28 @@ export async function POST(request: Request) {
     const options = payload.data?.options || [];
     const user = payload.member?.user || payload.user;
     const username = user?.username || "unknown";
+    const guildId = payload.guild_id || "default_guild";
 
-    if (commandName === "why") {
+    const resolved = await resolveWorkspace("discord", guildId);
+    if (!resolved) {
+      return NextResponse.json({
+        type: 4,
+        data: { content: "⚠️ Discord Server not connected to a Mnemo workspace. Register at mne-mo.vercel.app." }
+      });
+    }
+
+    if (commandName === "why" || commandName === "mnemo") {
       const topic = options.find((o: any) => o.name === "topic")?.value || "";
 
       try {
-        const ans = await answerQuestion(topic, true);
+        const ans = await answerQuestion(topic, true, resolved.bankId);
         const formatted = formatDiscordResponse(ans);
         return NextResponse.json({
           type: 4,
           data: { content: formatted }
         });
       } catch (err) {
-        console.error("Discord /why lookup failed:", err);
+        console.error("Discord lookup failed:", err);
         return NextResponse.json({
           type: 4,
           data: { content: "⚠️ Failed to query Mnemo memories." }
@@ -45,19 +57,37 @@ export async function POST(request: Request) {
       }
     }
 
-    if (commandName === "remember") {
+    if (commandName === "remember" || commandName === "mnemo-store") {
       const text = options.find((o: any) => o.name === "text")?.value || "";
 
       try {
         const source = `Discord command by @${username}`;
-        const result = await retainDecision(text, "discord", source);
+        const result = await retainDecision(text, "discord", source, resolved.bankId);
+        
+        await db.decision.create({
+          data: {
+            id: generateId("dec"),
+            workspaceId: resolved.workspaceId,
+            hindsightId: result.record.id,
+            title: result.record.title,
+            decision: result.record.decision,
+            rationale: result.record.rationale || "",
+            alternatives: JSON.stringify(result.record.alternatives || []),
+            caveats: (result.record.caveats || []).join(", "),
+            scope: result.record.scope || "",
+            people: (result.record.people || []).join(", "),
+            source: "discord",
+            state: result.record.state
+          }
+        });
+
         const responseText = `💾 **Decision retained to Mnemo memory!**\n*ID:* \`${result.record.id}\`\n*Title:* ${result.record.title}`;
         return NextResponse.json({
           type: 4,
           data: { content: responseText }
         });
       } catch (err) {
-        console.error("Discord /remember retention failed:", err);
+        console.error("Discord retention failed:", err);
         return NextResponse.json({
           type: 4,
           data: { content: "⚠️ Failed to retain decision." }

@@ -4,9 +4,9 @@ import { recallRelevantMemories } from "@/lib/recall";
 import { readCache, writeCache } from "@/lib/cache";
 import { stableHash } from "@/lib/text";
 
-export async function answerQuestion(question: string, useMemory: boolean): Promise<ChatAnswer> {
+export async function answerQuestion(question: string, useMemory: boolean, bankId?: string): Promise<ChatAnswer> {
   const mode = useMemory ? "with-memory" : "without-memory";
-  const cacheKey = `chat-${stableHash(`${mode}:${question}`)}`;
+  const cacheKey = `chat-${stableHash(`${mode}:${bankId || "default"}:${question}`)}`;
   const cached = await readCache<ChatAnswer>(cacheKey);
   if (cached) return cached;
 
@@ -28,7 +28,7 @@ export async function answerQuestion(question: string, useMemory: boolean): Prom
     return result;
   }
 
-  const { memories, operations } = await recallRelevantMemories(question, { topK: 5 });
+  const { memories, operations } = await recallRelevantMemories(question, { topK: 5 }, bankId);
   const answer = await synthesizeMemoryAnswer(question, memories);
   const result: ChatAnswer = { mode, ...answer, evidence: memories, operations };
   await writeCache(cacheKey, result);

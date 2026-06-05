@@ -1,0 +1,79 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Workspace {
+  id              String            @id
+  name            String
+  hindsightBankId String            @unique @map("hindsight_bank_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  users           User[]
+  repos           Repo[]
+  installations   BotInstallation[]
+  decisions       Decision[]
+
+  @@map("workspaces")
+}
+
+model User {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  githubId    String    @unique @map("github_id")
+  githubLogin String    @map("github_login")
+  githubToken String?   @map("github_token") // Encrypted access token
+  role        String    @default("member")  // "owner" | "member"
+  createdAt   DateTime  @default(now()) @map("created_at")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("users")
+}
+
+model Repo {
+  id             String    @id
+  workspaceId    String    @map("workspace_id")
+  githubRepoId   String    @map("github_repo_id")
+  fullName       String    @map("full_name")   // e.g. "acme/api"
+  connectedAt    DateTime  @default(now()) @map("connected_at")
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, githubRepoId])
+  @@map("repos")
+}
+
+model BotInstallation {
+  id            String    @id
+  workspaceId   String    @map("workspace_id")
+  platform      String    // "discord" | "slack" | "github"
+  platformId    String    @map("platform_id") // guild_id, team_id, installation_id
+  platformToken String?   @map("platform_token") // Encrypted platform token
+  installedAt   DateTime  @default(now()) @map("installed_at")
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([platform, platformId])
+  @@map("bot_installations")
+}
+
+model Decision {
+  id             String    @id
+  workspaceId    String    @map("workspace_id")
+  hindsightId    String?   @map("hindsight_id")
+  title          String
+  decision       String
+  rationale      String?
+  alternatives   String?   // JSON list of alternatives
+  caveats        String?   // Comma-separated caveats
+  scope          String?
+  people         String?   // Comma-separated authors/people
+  source         String    // 'github_pr' | 'slack' | 'discord' | 'manual'
+  sourceUrl      String?   @map("source_url")
+  repoFullName   String?   @map("repo_full_name")
+  state          String    @default("decided") // 'proposed' | 'decided' | 'reinforced' | 'revisited' | 'reversed' | 'stale'
+  createdAt      DateTime  @default(now()) @map("created_at")
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("decisions")
+}

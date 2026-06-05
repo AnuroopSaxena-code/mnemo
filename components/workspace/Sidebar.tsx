@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { ShowcaseToggle } from "./ShowcaseToggle";
 
 interface SidebarProps {
   repos: string[];
@@ -10,6 +11,8 @@ interface SidebarProps {
   onRepoSelect: (repo: string) => void;
   activeTab: string;
   onTabSelect: (tab: string) => void;
+  showcaseMode?: boolean;
+  onShowcaseToggle?: (val: boolean) => void;
 }
 
 const TABS = [
@@ -27,6 +30,8 @@ export function Sidebar({
   onRepoSelect,
   activeTab,
   onTabSelect,
+  showcaseMode,
+  onShowcaseToggle,
 }: SidebarProps) {
   const [statuses, setStatuses] = useState({
     github: false,
@@ -68,10 +73,15 @@ export function Sidebar({
         background: "var(--color-surface-1)",
       }}
     >
+      {/* Showcase Toggle */}
+      {onShowcaseToggle && (
+        <ShowcaseToggle isOn={!!showcaseMode} onToggle={onShowcaseToggle} />
+      )}
+
       {/* Wordmark + amber pulse dot */}
       <header
         className="flex items-center"
-        style={{ padding: "0 24px", gap: 10, marginBottom: 40 }}
+        style={{ padding: "0 24px", gap: 10, marginTop: 16, marginBottom: 40 }}
       >
         <h1
           className="font-display"
@@ -306,6 +316,8 @@ export function MobileSidebar({
   activeTab,
   onTabSelect,
   onClose,
+  showcaseMode,
+  onShowcaseToggle,
 }: SidebarProps & { onClose: () => void }) {
   const [statuses, setStatuses] = useState({
     github: false,
@@ -395,6 +407,18 @@ export function MobileSidebar({
             {decisionCount} decisions
           </span>
         </header>
+
+        {onShowcaseToggle && (
+          <div style={{ marginBottom: 20 }}>
+            <ShowcaseToggle 
+              isOn={!!showcaseMode} 
+              onToggle={(val) => {
+                onShowcaseToggle(val);
+                onClose();
+              }} 
+            />
+          </div>
+        )}
 
         {/* Mobile Tabs */}
         <nav style={{ marginBottom: 24 }} aria-label="Agent features">

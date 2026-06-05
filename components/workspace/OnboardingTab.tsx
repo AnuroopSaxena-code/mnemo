@@ -7,6 +7,7 @@ import type { DecisionRecord, OnboardingBrief } from "@/lib/types";
 interface OnboardingTabProps {
   onDecisionClick: (decision: DecisionRecord) => void;
   decisions: DecisionRecord[];
+  showcaseMode?: boolean;
 }
 
 const SERVICE_OPTIONS = [
@@ -21,6 +22,7 @@ const SERVICE_OPTIONS = [
 export function OnboardingTab({
   onDecisionClick,
   decisions,
+  showcaseMode,
 }: OnboardingTabProps) {
   const [selectedService, setSelectedService] = useState("billing-events");
   const [loading, setLoading] = useState(false);
@@ -35,7 +37,7 @@ export function OnboardingTab({
         const response = await fetch("/api/onboarding", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ service: selectedService }),
+          body: JSON.stringify({ service: selectedService, bankId: showcaseMode ? "mnemo" : undefined }),
         });
         const data = await response.json();
         if (!response.ok)
@@ -48,7 +50,7 @@ export function OnboardingTab({
       }
     }
     loadBrief();
-  }, [selectedService]);
+  }, [selectedService, showcaseMode]);
 
   return (
     <div

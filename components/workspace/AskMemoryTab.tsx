@@ -7,6 +7,7 @@ import type { DecisionRecord, ChatAnswer, RecalledMemory } from "@/lib/types";
 interface AskMemoryTabProps {
   onDecisionClick: (decision: DecisionRecord) => void;
   suggestedQueries: string[];
+  showcaseMode?: boolean;
 }
 
 /** Split answer text into sentences for staggered reveal */
@@ -19,6 +20,7 @@ function splitSentences(text: string): string[] {
 export function AskMemoryTab({
   onDecisionClick,
   suggestedQueries,
+  showcaseMode,
 }: AskMemoryTabProps) {
   const [query, setQuery] = useState("");
   const [useMemory, setUseMemory] = useState(true);
@@ -41,7 +43,7 @@ export function AskMemoryTab({
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, useMemory }),
+        body: JSON.stringify({ question: q, useMemory, bankId: showcaseMode ? "mnemo" : undefined }),
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || "Request failed.");

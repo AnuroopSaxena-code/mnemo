@@ -4,7 +4,7 @@ import { getHindsightClient, hasHindsightKey, HINDSIGHT_BANK_ID } from "@/lib/hi
 import { retainLocalDecision } from "@/lib/local-memory";
 import { stableHash } from "@/lib/text";
 
-export async function retainDecision(rawText: string, sourceType: SourceType, source = "Manual review") {
+export async function retainDecision(rawText: string, sourceType: SourceType, source = "Manual review", bankId?: string) {
   const extraction = await extractDecision(rawText, sourceType);
   const now = new Date().toISOString();
   const date = extraction.date || now.slice(0, 10);
@@ -42,10 +42,12 @@ export async function retainDecision(rawText: string, sourceType: SourceType, so
   await retainLocalDecision(record);
   operations.push({ label: "Local retain", state: "complete", detail: "Saved to local demo memory." });
 
+  const targetBankId = bankId || HINDSIGHT_BANK_ID;
+
   if (hasHindsightKey()) {
     try {
       const client = getHindsightClient();
-      await client.retain(HINDSIGHT_BANK_ID, record.content, {
+      await client.retain(targetBankId, record.content, {
         context: `engineering decision - ${sourceType}`,
         timestamp: new Date(date),
         metadata: {
@@ -57,7 +59,7 @@ export async function retainDecision(rawText: string, sourceType: SourceType, so
           tags: record.tags.join(",")
         }
       });
-      operations.push({ label: "Hindsight retain", state: "complete", detail: `Retained to ${HINDSIGHT_BANK_ID}.` });
+      operations.push({ label: "Hindsight retain", state: "complete", detail: `Retained to ${targetBankId}.` });
     } catch (error) {
       operations.push({
         label: "Hindsight retain",

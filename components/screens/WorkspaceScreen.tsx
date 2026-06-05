@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar, MobileSidebar } from "@/components/workspace/Sidebar";
 import { PreMortemTab } from "@/components/workspace/PreMortemTab";
@@ -25,9 +25,13 @@ const suggestedQueries = [
 type WorkspaceTab = "premortem" | "ask" | "timeline" | "onboarding" | "sources";
 
 export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
+  const [showcaseMode, setShowcaseMode] = useState(true);
   const [activeRepo, setActiveRepo] = useState(repoName);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("premortem");
   const [decisionsList, setDecisionsList] = useState<DecisionRecord[]>(decisions);
+  const [dbDecisions, setDbDecisions] = useState<DecisionRecord[]>([]);
+  const [authInfo, setAuthInfo] = useState<any>(null);
+  
   const [detailDecision, setDetailDecision] = useState<DecisionRecord | null>(null);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [isMobile] = useState(() =>
@@ -40,15 +44,60 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
   const [loadedSourceDetail, setLoadedSourceDetail] = useState<string | undefined>(undefined);
   const [premortemKey, setPremortemKey] = useState(0);
 
-  const repos = [repoName, "user-auth-gateway", "dashboard-frontend"];
+  // 1. Fetch user workspace and connection status on mount
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          setAuthInfo(data);
+        }
+      } catch (err) {
+        console.warn("Auth info check failed:", err);
+      }
+    }
+    checkAuth();
+  }, []);
+
+  // 2. Fetch database-retained decisions in Live Mode
+  const fetchDbDecisions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/decisions");
+      if (res.ok) {
+        const data = await res.json();
+        setDbDecisions(data.decisions);
+      }
+    } catch (err) {
+      console.warn("Failed fetching DB decisions:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showcaseMode) {
+      fetchDbDecisions();
+    }
+  }, [showcaseMode, fetchDbDecisions]);
+
+  // 3. Resolve active repositories and decisions based on Showcase status
+  const repos = showcaseMode
+    ? [repoName, "user-auth-gateway", "dashboard-frontend"]
+    : (authInfo?.workspace?.repos && authInfo.workspace.repos.length > 0
+        ? authInfo.workspace.repos
+        : [repoName]);
+
+  const activeDecisionsList = showcaseMode ? decisionsList : dbDecisions;
 
   const handleAddDecision = useCallback((newDec: DecisionRecord) => {
-    setDecisionsList((prev) => {
-      // Avoid duplicate keys
-      if (prev.some((d) => d.id === newDec.id)) return prev;
-      return [newDec, ...prev];
-    });
-  }, []);
+    if (showcaseMode) {
+      setDecisionsList((prev) => {
+        if (prev.some((d) => d.id === newDec.id)) return prev;
+        return [newDec, ...prev];
+      });
+    } else {
+      fetchDbDecisions();
+    }
+  }, [showcaseMode, fetchDbDecisions]);
 
   const handleLoadProposal = useCallback((text: string, sourceType: SourceType, sourceDetail: string) => {
     setLoadedProposal(text);
@@ -69,10 +118,12 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
           <Sidebar
             repos={repos}
             activeRepo={activeRepo}
-            decisionCount={decisionsList.length}
+            decisionCount={activeDecisionsList.length}
             onRepoSelect={setActiveRepo}
             activeTab={activeTab}
             onTabSelect={(tab) => setActiveTab(tab as WorkspaceTab)}
+            showcaseMode={showcaseMode}
+            onShowcaseToggle={setShowcaseMode}
           />
         )}
 
@@ -115,6 +166,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                   initialSourceDetail={loadedSourceDetail}
                   onDecisionClick={setDetailDecision}
                   onAddDecision={handleAddDecision}
+                  showcaseMode={showcaseMode}
                 />
               </motion.div>
             )}
@@ -130,6 +182,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 <AskMemoryTab
                   onDecisionClick={setDetailDecision}
                   suggestedQueries={suggestedQueries}
+                  showcaseMode={showcaseMode}
                 />
               </motion.div>
             )}
@@ -143,7 +196,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 transition={{ duration: 0.2 }}
               >
                 <TimelineTab
-                  decisions={decisionsList}
+                  decisions={activeDecisionsList}
                   onDecisionClick={setDetailDecision}
                 />
               </motion.div>
@@ -158,8 +211,9 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 transition={{ duration: 0.2 }}
               >
                 <OnboardingTab
-                  decisions={decisionsList}
+                  decisions={activeDecisionsList}
                   onDecisionClick={setDetailDecision}
+                  showcaseMode={showcaseMode}
                 />
               </motion.div>
             )}
@@ -185,11 +239,13 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
           <MobileSidebar
             repos={repos}
             activeRepo={activeRepo}
-            decisionCount={decisionsList.length}
+            decisionCount={activeDecisionsList.length}
             onRepoSelect={setActiveRepo}
             activeTab={activeTab}
             onTabSelect={(tab) => setActiveTab(tab as WorkspaceTab)}
             onClose={() => setShowMobileSidebar(false)}
+            showcaseMode={showcaseMode}
+            onShowcaseToggle={setShowcaseMode}
           />
         )}
       </AnimatePresence>

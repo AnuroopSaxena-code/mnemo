@@ -6,10 +6,10 @@ import { getGroqClient, GROQ_MODEL_SYNTHESIS, hasGroqKey } from "@/lib/groq";
 import { readCache, writeCache } from "@/lib/cache";
 import { stableHash } from "@/lib/text";
 
-export async function generatePremortem(rawText: string, sourceType: SourceType): Promise<PremortemResult> {
+export async function generatePremortem(rawText: string, sourceType: SourceType, bankId?: string): Promise<PremortemResult> {
   const extraction = await extractDecision(rawText, sourceType);
   const recallQuery = `${extraction.decision} ${extraction.rationale} ${extraction.scope} ${extraction.tags.join(" ")}`;
-  const { memories, operations } = await recallRelevantMemories(recallQuery, { topK: 5 });
+  const { memories, operations } = await recallRelevantMemories(recallQuery, { topK: 5 }, bankId);
   const health = aggregateHealth(memories);
   const warningLevel = warningFromMemories(memories, health.label);
   const lifecycle = memories.flatMap((memory) => memory.record?.lifecycle || []).slice(0, 8);

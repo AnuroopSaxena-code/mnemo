@@ -13,3 +13,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 tsconfig.tsbuildinfo
+
+# SQLite databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal

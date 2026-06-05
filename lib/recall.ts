@@ -9,15 +9,17 @@ interface RecallOptions {
   forceLocal?: boolean;
 }
 
-export async function recallRelevantMemories(query: string, options: RecallOptions = {}) {
+export async function recallRelevantMemories(query: string, options: RecallOptions = {}, bankId?: string) {
   const operations: OperationBadge[] = [];
   const topK = options.topK || 5;
   const local = await localRecall(query, topK);
 
+  const targetBankId = bankId || HINDSIGHT_BANK_ID;
+
   if (hasHindsightKey() && !options.forceLocal) {
     try {
       const client = getHindsightClient();
-      const result = await client.recall(HINDSIGHT_BANK_ID, query, { maxTokens: 2600, budget: "mid" });
+      const result = await client.recall(targetBankId, query, { maxTokens: 2600, budget: "mid" });
       const memories: RecalledMemory[] = (result.results || []).slice(0, topK).map((memory: any, index: number) => {
         const matchingRecord = local[index]?.record;
         return {
@@ -35,7 +37,7 @@ export async function recallRelevantMemories(query: string, options: RecallOptio
       operations.push({
         label: "Hindsight recall",
         state: "complete",
-        detail: `Recalled ${memories.length} memories from ${HINDSIGHT_BANK_ID}.`
+        detail: `Recalled ${memories.length} memories from ${targetBankId}.`
       });
       return { memories: merged, operations };
     } catch (error) {

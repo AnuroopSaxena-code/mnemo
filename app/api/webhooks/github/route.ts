@@ -3,6 +3,9 @@ import { extractGitHubComment, verifyGitHubSignature } from "@/lib/github";
 import { generatePremortem } from "@/lib/premortem";
 import { retainDecision } from "@/lib/retain";
 import { postPRComment } from "@/lib/github-app";
+import { resolveWorkspace } from "@/lib/workspace";
+import { db } from "@/lib/db";
+import { generateId } from "@/lib/crypto";
 
 const DECISION_SIGNALS = [
   "decided",
@@ -37,6 +40,11 @@ export async function POST(request: Request) {
   const repo = payload.repository?.name;
   const installationId = payload.installation?.id;
 
+  const resolved = await resolveWorkspace("github", String(installationId || "default_installation"));
+  if (!resolved) {
+    return NextResponse.json({ skipped: true, reason: "Unable to resolve workspace installation context." });
+  }
+
   // 1. Handle PR open/synchronize
   if (eventType === "pull_request" && (payload.action === "opened" || payload.action === "synchronize")) {
     const prNumber = payload.pull_request?.number;
@@ -60,7 +68,7 @@ export async function POST(request: Request) {
 
     try {
       const source = `${owner}/${repo} PR #${prNumber}: ${title}`;
-      const premortem = await generatePremortem(prText, "github");
+      const premortem = await generatePremortem(prText, "github", resolved.bankId);
       
       let commentPosted = false;
       let decisionRetained = false;
@@ -82,7 +90,27 @@ export async function POST(request: Request) {
 
       // Auto-retain decision on warning level >= medium
       if (premortem.warningLevel !== "low") {
-        await retainDecision(prText, "github", source);
+        const result = await retainDecision(prText, "github", source, resolved.bankId);
+        
+        await db.decision.create({
+          data: {
+            id: generateId("dec"),
+            workspaceId: resolved.workspaceId,
+            hindsightId: result.record.id,
+            title: result.record.title,
+            decision: result.record.decision,
+            rationale: result.record.rationale || "",
+            alternatives: JSON.stringify(result.record.alternatives || []),
+            caveats: (result.record.caveats || []).join(", "),
+            scope: result.record.scope || "",
+            people: (result.record.people || []).join(", "),
+            source: "github_pr",
+            sourceUrl: payload.pull_request?.html_url || "",
+            repoFullName: `${owner}/${repo}`,
+            state: result.record.state
+          }
+        });
+        
         decisionRetained = true;
       }
 
@@ -100,11 +128,36 @@ export async function POST(request: Request) {
     const isDecisionLike = DECISION_SIGNALS.some((signal) => lower.includes(signal));
 
     if (isDecisionLike) {
-      const premortem = await generatePremortem(comment, "github");
-      const retained = await retainDecision(comment, "github", source);
-      return NextResponse.json({ skipped: false, premortem, retained });
+      try {
+        const premortem = await generatePremortem(comment, "github", resolved.bankId);
+        const result = await retainDecision(comment, "github", source, resolved.bankId);
+        
+        await db.decision.create({
+          data: {
+            id: generateId("dec"),
+            workspaceId: resolved.workspaceId,
+            hindsightId: result.record.id,
+            title: result.record.title,
+            decision: result.record.decision,
+            rationale: result.record.rationale || "",
+            alternatives: JSON.stringify(result.record.alternatives || []),
+            caveats: (result.record.caveats || []).join(", "),
+            scope: result.record.scope || "",
+            people: (result.record.people || []).join(", "),
+            source: "github_pr",
+            sourceUrl: payload.comment?.html_url || "",
+            repoFullName: `${owner}/${repo}`,
+            state: result.record.state
+          }
+        });
+
+        return NextResponse.json({ skipped: false, premortem, retained: result });
+      } catch (err: any) {
+        console.error("Error processing GitHub comment:", err);
+        return NextResponse.json({ error: "Failed to process comment." }, { status: 500 });
+      }
     }
   }
 
-  return NextResponse.json({ skipped: true, reason: "No decision-like comment found." });
+  return NextResponse.json({ skipped: true, reason: "No decision-like comment or pull request action found." });
 }
