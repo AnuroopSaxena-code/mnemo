@@ -1,6 +1,6 @@
 const required = [
   'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET',
-  'GITHUB_REDIRECT_URI', 'GITHUB_APP_ID',
+  'GITHUB_APP_ID',
   'GITHUB_WEBHOOK_SECRET', 'HINDSIGHT_API_KEY', 'GROQ_API_KEY',
   'SESSION_SECRET', 'NEXT_PUBLIC_APP_URL'
 ]
@@ -13,6 +13,11 @@ for (const key of required) {
   if (!process.env[key] && !isNextBuild) {
     throw new Error(`Missing required environment variable: ${key}`)
   }
+}
+
+const redirectUriRaw = process.env.GITHUB_REDIRECT_URI || process.env.GITHUB_REDIRECT_URL;
+if (!redirectUriRaw && !isNextBuild) {
+  throw new Error("Missing required environment variable: GITHUB_REDIRECT_URI or GITHUB_REDIRECT_URL")
 }
 
 if (!hasDatabaseUrl && !isNextBuild) {
@@ -43,7 +48,7 @@ export const env = {
   github: {
     clientId: process.env.GITHUB_CLIENT_ID || 'mock_client_id',
     clientSecret: process.env.GITHUB_CLIENT_SECRET || 'mock_client_secret',
-    redirectUri: process.env.GITHUB_REDIRECT_URI || 'http://localhost:3000/api/auth/callback/github',
+    redirectUri: redirectUriRaw || 'http://localhost:3000/api/auth/callback/github',
     appId: process.env.GITHUB_APP_ID || 'mock_app_id',
     privateKey: getDecodedPrivateKey(privateKeyRaw),
     webhookSecret: process.env.GITHUB_WEBHOOK_SECRET || 'mock_webhook_secret',
