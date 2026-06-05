@@ -37,10 +37,9 @@ function mapDbDecisionToRecord(d: any) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   try {
+    const session = await getSession()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { query } = await req.json()
     if (!query?.trim()) return NextResponse.json({ error: 'Query required' }, { status: 400 })
 
@@ -79,8 +78,12 @@ export async function POST(req: NextRequest) {
       answer,
       evidence
     })
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to query memory:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: err?.message || String(err),
+      stack: process.env.NODE_ENV !== 'production' ? err?.stack : undefined
+    }, { status: 500 })
   }
 }
