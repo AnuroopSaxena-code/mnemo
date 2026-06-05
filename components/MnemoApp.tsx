@@ -24,11 +24,11 @@ export function MnemoApp({ initialDecisions }: MnemoAppProps) {
       const res = await fetch("/api/auth/me");
       if (res.ok) {
         const data = await res.json();
-        setAuthInfo(data);
-        if (data.authenticated) {
-          const connectedRepos = data.workspace?.repos || [];
+        if (data.user) {
+          setAuthInfo(data);
+          const connectedRepos = data.repos || [];
           if (connectedRepos.length > 0) {
-            setRepoName(connectedRepos[0].fullName || connectedRepos[0]);
+            setRepoName(connectedRepos[0].fullName);
             setScreen("workspace");
           } else {
             setScreen("connecting");
@@ -50,7 +50,7 @@ export function MnemoApp({ initialDecisions }: MnemoAppProps) {
   }, []);
 
   function handleConnect() {
-    window.location.href = "/api/auth/login/github";
+    window.location.href = "/api/auth/github";
   }
 
   function handleConnected(name: string) {

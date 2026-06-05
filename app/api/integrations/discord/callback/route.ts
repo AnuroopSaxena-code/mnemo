@@ -1,42 +1,52 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
-import { db } from "@/lib/db";
-import { generateId } from "@/lib/crypto";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/session'
+import { db } from '@/lib/db'
+import { env } from '@/lib/env'
+import { nanoid } from 'nanoid'
 
-export async function GET(request: Request) {
-  const session = getSession(request.headers.get("cookie"));
-  if (!session) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/?error=unauthorized`);
-  }
+export async function GET(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.redirect(new URL('/', env.appUrl))
 
-  const { searchParams } = new URL(request.url);
-  const guildId = searchParams.get("guild_id");
-
-  if (!guildId) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/`);
-  }
+  const { searchParams } = new URL(req.url)
+  const code = searchParams.get('code')
+  if (!code) return NextResponse.redirect(new URL('/dashboard?error=discord_failed', env.appUrl))
 
   try {
-    await db.botInstallation.upsert({
-      where: {
-        platform_platformId: {
-          platform: "discord",
-          platformId: guildId
-        }
-      },
-      update: {
-        workspaceId: session.workspaceId
-      },
-      create: {
-        id: generateId("inst"),
-        workspaceId: session.workspaceId,
-        platform: "discord",
-        platformId: guildId
-      }
-    });
-  } catch (err) {
-    console.error("Discord bot installation save failed:", err);
-  }
+    const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: env.discord.clientId,
+        client_secret: env.discord.clientSecret,
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: env.discord.redirectUri,
+      }),
+    })
+    
+    const tokenData = await tokenRes.json()
+    const guildId = tokenData.guild?.id
 
-  return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/`);
+    if (!guildId) {
+      console.error('Discord OAuth did not return guild ID:', tokenData)
+      return NextResponse.redirect(new URL('/dashboard?error=discord_no_guild', env.appUrl))
+    }
+
+    await db.botInstallation.upsert({
+      where: { platform_platformId: { platform: 'discord', platformId: String(guildId) } },
+      create: {
+        id: `bot_${nanoid(12)}`,
+        workspaceId: session.workspaceId,
+        platform: 'discord',
+        platformId: String(guildId),
+      },
+      update: { workspaceId: session.workspaceId },
+    })
+
+    return NextResponse.redirect(new URL('/dashboard?connected=discord', env.appUrl))
+  } catch (err) {
+    console.error('Discord callback failed:', err)
+    return NextResponse.redirect(new URL('/dashboard?error=discord_callback_error', env.appUrl))
+  }
 }

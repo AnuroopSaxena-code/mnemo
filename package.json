@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "discord-bot": "tsx discord-bot/index.ts"
   },
   "dependencies": {
     "@prisma/adapter-ppg": "^7.8.0",
@@ -18,14 +19,17 @@
     "@vectorize-io/hindsight-client": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
     "framer-motion": "^12.40.0",
     "groq-sdk": "^0.34.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.468.0",
+    "nanoid": "^5.1.11",
     "next": "^14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "tsx": "^4.22.4",
     "tweetnacl": "^1.0.3",
     "zod": "^3.24.1"
   },

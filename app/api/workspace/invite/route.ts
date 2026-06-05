@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 const SECRET = process.env.SESSION_SECRET || "default_session_secret_for_cookies";
 
 export async function POST(request: Request) {
-  const session = getSession(request.headers.get("cookie"));
+  const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

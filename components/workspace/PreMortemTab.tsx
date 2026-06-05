@@ -59,10 +59,10 @@ export function PreMortemTab({
     ]);
 
     try {
-      const res = await fetch("/api/premortem", {
+      const res = await fetch("/api/memory/premortem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText: proposal, sourceType, bankId: showcaseMode ? "mnemo" : undefined }),
+        body: JSON.stringify({ text: proposal, source: sourceType, sourceName: sourceDetail }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to analyze proposal");
@@ -103,10 +103,10 @@ export function PreMortemTab({
     setRetaining(true);
     setRetainedMsg(null);
     try {
-      const res = await fetch("/api/ingest", {
+      const res = await fetch("/api/memory/retain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText: proposal, sourceType, source: sourceDetail, bankId: showcaseMode ? "mnemo" : undefined }),
+        body: JSON.stringify({ text: proposal, source: sourceType, repoFullName: sourceDetail }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to retain");

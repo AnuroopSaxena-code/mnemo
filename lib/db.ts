@@ -1,21 +1,18 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaPostgresAdapter } from "@prisma/adapter-ppg";
+import { PrismaClient } from '@prisma/client'
+import { PrismaPostgresAdapter } from '@prisma/adapter-ppg'
+import { env } from './env'
 
-declare global {
-  var prisma: PrismaClient | undefined;
-}
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
 function getPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/mnemo";
-  const adapter = new PrismaPostgresAdapter({ connectionString });
-  return new PrismaClient({ adapter });
+  // Use Prisma Postgres adapter as required by Prisma 7
+  const adapter = new PrismaPostgresAdapter({ connectionString: env.databaseUrl })
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['error'] : [],
+  })
 }
 
+export const db = globalForPrisma.prisma ?? getPrismaClient()
 
-export const db = globalThis.prisma || getPrismaClient();
-
-
-if (process.env.NODE_ENV !== "production") {
-  globalThis.prisma = db;
-}
-
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db

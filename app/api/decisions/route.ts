@@ -1,134 +1,51 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
-import { db } from "@/lib/db";
-import { generateId } from "@/lib/crypto";
-import { HindsightClient } from "@vectorize-io/hindsight-client";
+import { NextResponse } from 'next/server'
+import { getSession } from '@/lib/session'
+import { db } from '@/lib/db'
 
-function getHindsightClient() {
-  if (!process.env.HINDSIGHT_API_KEY) return null;
-  return new HindsightClient({
-    baseUrl: process.env.HINDSIGHT_BASE_URL || "https://api.hindsight.vectorize.io",
-    apiKey: process.env.HINDSIGHT_API_KEY
-  });
-}
-
-export async function GET(request: Request) {
-  const session = getSession(request.headers.get("cookie"));
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const repoName = searchParams.get("repo");
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     const decisions = await db.decision.findMany({
-      where: {
-        workspaceId: session.workspaceId,
-        ...(repoName ? { repoFullName: repoName } : {})
-      },
-      orderBy: { createdAt: "desc" }
-    });
+      where: { workspaceId: session.workspaceId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    })
 
-    // Map string fields back to array / JSON formats if needed
-    const formatted = decisions.map((d) => ({
-      ...d,
-      alternatives: d.alternatives ? JSON.parse(d.alternatives) : [],
-      caveats: d.caveats ? d.caveats.split(",").map(c => c.trim()).filter(Boolean) : [],
-      people: d.people ? d.people.split(",").map(p => p.trim()).filter(Boolean) : [],
-    }));
+    const formatted = decisions.map(d => ({
+      id: d.id,
+      title: d.summary.length > 60 ? d.summary.slice(0, 60) + '...' : d.summary,
+      decision: d.summary,
+      rationale: d.rationale || "not stated",
+      alternatives: [],
+      caveats: d.caveats ? d.caveats.split(",").map(c => c.trim()) : [],
+      scope: d.scope || "global",
+      people: [d.author],
+      date: new Date(d.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      state: d.status as any,
+      sourceType: d.source.includes('github') ? 'github' : d.source.includes('slack') ? 'slack' : d.source.includes('discord') ? 'discord' : 'manual',
+      source: d.source,
+      sourceUrl: d.sourceUrl || undefined,
+      tags: d.scope ? [d.scope] : [],
+      reinforcementCount: 0,
+      authorStatus: "active" as const,
+      lifecycle: [
+        {
+          id: `evt_${d.id}`,
+          state: d.status as any,
+          date: new Date(d.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+          title: "Decision Recorded",
+          summary: d.summary,
+          source: d.source
+        }
+      ],
+      content: d.summary
+    }))
 
-    return NextResponse.json({ decisions: formatted });
-  } catch (err: any) {
-    console.error("Fetch decisions failed:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
-export async function POST(request: Request) {
-  const session = getSession(request.headers.get("cookie"));
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const body = await request.json();
-    const { 
-      title, 
-      decision, 
-      rationale, 
-      alternatives, // Array of { name, rejectedBecause }
-      caveats,      // Array of strings
-      scope, 
-      people,       // Array of strings
-      repoFullName, 
-      state 
-    } = body;
-
-    if (!title || !decision) {
-      return NextResponse.json({ error: "Title and Decision are required" }, { status: 400 });
-    }
-
-    const workspace = await db.workspace.findUnique({
-      where: { id: session.workspaceId }
-    });
-
-    if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
-    }
-
-    // Retain to Hindsight isolated bank if configured
-    const decisionId = generateId("dec");
-    let hindsightId = "";
-    const hClient = getHindsightClient();
-    if (hClient) {
-      try {
-        const textContent = `Title: ${title}\nDecision: ${decision}\nRationale: ${rationale || ""}\nCaveats: ${(caveats || []).join(", ")}`;
-        await hClient.retain(workspace.hindsightBankId, textContent, {
-          context: "engineering decision",
-          timestamp: new Date(),
-          documentId: decisionId,
-          metadata: {
-            title,
-            scope,
-            repoFullName,
-            author: (people || []).join(", ")
-          }
-        });
-        hindsightId = decisionId;
-      } catch (hErr) {
-        console.error("Failed to retain to Hindsight Cloud:", hErr);
-      }
-    }
-
-    const decRecord = await db.decision.create({
-      data: {
-        id: decisionId,
-        workspaceId: session.workspaceId,
-        hindsightId,
-        title,
-        decision,
-        rationale: rationale || "",
-        alternatives: JSON.stringify(alternatives || []),
-        caveats: (caveats || []).join(", "),
-        scope: scope || "",
-        people: (people || []).join(", "),
-        source: "manual",
-        repoFullName: repoFullName || "",
-        state: state || "decided"
-      }
-    });
-
-    return NextResponse.json({
-      decision: {
-        ...decRecord,
-        alternatives: alternatives || [],
-        caveats: caveats || [],
-        people: people || []
-      }
-    });
-  } catch (err: any) {
-    console.error("Save decision failed:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ decisions: formatted })
+  } catch (err) {
+    console.error('Failed to fetch decisions:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -39,11 +39,11 @@ export function ConnectRepoModal({ onConnected }: ConnectRepoModalProps) {
       ? repoUrl.split("/").pop() || repoUrl
       : repoUrl;
 
-    const found = repos.find(r => r.name.toLowerCase().includes(searchName.toLowerCase()));
+    const found = repos.find(r => (r as any).fullName.toLowerCase().includes(searchName.toLowerCase()));
     if (found) {
-      startScan(found.id, found.name);
+      startScan(found.id, (found as any).fullName);
     } else if (repos.length > 0) {
-      startScan(repos[0].id, repos[0].name);
+      startScan(repos[0].id, (repos[0] as any).fullName);
     } else {
       alert("No repository selected. Please choose a repository from your GitHub profile.");
     }
@@ -57,9 +57,15 @@ export function ConnectRepoModal({ onConnected }: ConnectRepoModalProps) {
       const res = await fetch("/api/repos/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoIds: [repoId] })
+        body: JSON.stringify({ repoId, fullName: name, isPrivate: false })
       });
       if (res.ok) {
+        // Run sync comments after connection
+        await fetch("/api/repos/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fullName: name })
+        });
         setTimeout(() => onConnected(name), 1800);
       } else {
         alert("Failed to connect repository in workspace.");
@@ -220,7 +226,7 @@ export function ConnectRepoModal({ onConnected }: ConnectRepoModalProps) {
                               cursor: "pointer",
                               color: "var(--color-ink)",
                             }}
-                            onClick={() => startScan(repo.id, repo.name)}
+                            onClick={() => startScan(repo.id, (repo as any).fullName)}
                           >
                             <span className="flex items-center" style={{ gap: 8 }}>
                               <span
@@ -233,7 +239,7 @@ export function ConnectRepoModal({ onConnected }: ConnectRepoModalProps) {
                                 aria-hidden="true"
                               />
                               <span className="font-mono" style={{ fontSize: 13 }}>
-                                {repo.name}
+                                {(repo as any).fullName}
                               </span>
                             </span>
                           </button>

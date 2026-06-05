@@ -1,47 +1,32 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
-import { db } from "@/lib/db";
+import { NextResponse } from 'next/server'
+import { getSession } from '@/lib/session'
+import { db } from '@/lib/db'
 
-export async function GET(request: Request) {
-  const session = getSession(request.headers.get("cookie"));
-  if (!session) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
-  }
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ user: null })
 
   try {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      include: { 
-        workspace: {
-          include: {
-            repos: true,
-            installations: true
-          }
-        }
-      }
-    });
-
-    if (!user) {
-      return NextResponse.json({ authenticated: false }, { status: 401 });
-    }
+    const [repos, decisions, integrations] = await Promise.all([
+      db.repo.findMany({ where: { workspaceId: session.workspaceId } }),
+      db.decision.count({ where: { workspaceId: session.workspaceId } }),
+      db.botInstallation.findMany({ where: { workspaceId: session.workspaceId } }),
+    ])
 
     return NextResponse.json({
-      authenticated: true,
       user: {
-        id: user.id,
-        githubLogin: user.githubLogin,
-        role: user.role
+        id: session.user.id,
+        login: session.user.githubLogin,
+        avatarUrl: session.user.avatarUrl,
+        role: session.user.role,
       },
-      workspace: {
-        id: user.workspaceId,
-        name: user.workspace.name,
-        bankId: user.workspace.hindsightBankId,
-        repos: user.workspace.repos.map((r) => r.fullName),
-        integrations: user.workspace.installations.map((i) => i.platform)
-      }
-    });
-  } catch (err: any) {
-    console.error("Auth Me Query failed:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+      workspace: { id: session.workspaceId },
+      repos,
+      decisions,
+      integrations: integrations.map(i => ({ platform: i.platform, connectedAt: i.installedAt })),
+    })
+  } catch (err) {
+    console.error('Failed to retrieve current user info:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

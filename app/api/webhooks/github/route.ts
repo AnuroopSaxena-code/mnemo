@@ -1,163 +1,97 @@
-import { NextResponse } from "next/server";
-import { extractGitHubComment, verifyGitHubSignature } from "@/lib/github";
-import { generatePremortem } from "@/lib/premortem";
-import { retainDecision } from "@/lib/retain";
-import { postPRComment } from "@/lib/github-app";
-import { resolveWorkspace } from "@/lib/workspace";
-import { db } from "@/lib/db";
-import { generateId } from "@/lib/crypto";
+import { NextRequest, NextResponse } from 'next/server'
+import { env } from '@/lib/env'
+import { resolveWorkspace } from '@/lib/workspace'
+import { isDecision, ingestDecision } from '@/lib/ingest'
+import { db } from '@/lib/db'
+import { nanoid } from 'nanoid'
+import crypto from 'crypto'
 
-const DECISION_SIGNALS = [
-  "decided",
-  "going with",
-  "rejected",
-  "instead of",
-  "tradeoff",
-  "because",
-  "moving away",
-  "revisit",
-  "rollback",
-  "switch to",
-  "chose"
-];
+async function verifySignature(req: NextRequest, body: string): Promise<boolean> {
+  const sig = req.headers.get('x-hub-signature-256') ?? ''
+  const expected = 'sha256=' + crypto
+    .createHmac('sha256', env.github.webhookSecret)
+    .update(body).digest('hex')
+  if (sig.length !== expected.length) return false
+  return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))
+}
 
-// In-memory rate limiter cache to avoid double webhook processing within 5 mins
-const prCache = new Map<string, number>();
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-export async function POST(request: Request) {
-  const body = await request.text();
-  const signature = request.headers.get("x-hub-signature-256");
-
-  if (!verifyGitHubSignature(process.env.GITHUB_WEBHOOK_SECRET, body, signature)) {
-    return NextResponse.json({ error: "Invalid GitHub signature." }, { status: 401 });
-  }
-
-  const payload = JSON.parse(body);
-  const eventType = request.headers.get("x-github-event");
-
-  const owner = payload.repository?.owner?.login;
-  const repo = payload.repository?.name;
-  const installationId = payload.installation?.id;
-
-  const resolved = await resolveWorkspace("github", String(installationId || "default_installation"));
-  if (!resolved) {
-    return NextResponse.json({ skipped: true, reason: "Unable to resolve workspace installation context." });
-  }
-
-  // 1. Handle PR open/synchronize
-  if (eventType === "pull_request" && (payload.action === "opened" || payload.action === "synchronize")) {
-    const prNumber = payload.pull_request?.number;
-    const title = payload.pull_request?.title || "";
-    const prBody = payload.pull_request?.body || "";
-    const prText = `Title: ${title}\nDescription: ${prBody}`;
-    
-    const cacheKey = `${owner}/${repo}/${prNumber}/${payload.action}`;
-    const now = Date.now();
-    const lastRun = prCache.get(cacheKey);
-
-    // Clean cache map of expired items
-    for (const [key, timestamp] of prCache.entries()) {
-      if (now - timestamp > CACHE_TTL_MS) prCache.delete(key);
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.text()
+    if (!await verifySignature(req, body)) {
+      return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    if (lastRun && now - lastRun < CACHE_TTL_MS) {
-      return NextResponse.json({ skipped: true, reason: "Rate limited (recently processed)." });
-    }
-    prCache.set(cacheKey, now);
+    const event = req.headers.get('x-github-event')
+    const payload = JSON.parse(body)
 
-    try {
-      const source = `${owner}/${repo} PR #${prNumber}: ${title}`;
-      const premortem = await generatePremortem(prText, "github", resolved.bankId);
-      
-      let commentPosted = false;
-      let decisionRetained = false;
+    // Handle app installation
+    if (event === 'installation' && payload.action === 'created') {
+      const installerId = String(payload.sender?.id)
+      const user = await db.user.findUnique({ where: { githubId: installerId } })
+      if (user) {
+        await db.botInstallation.upsert({
+          where: {
+            platform_platformId: { platform: 'github', platformId: String(payload.installation.id) }
+          },
+          create: {
+            id: `bot_${nanoid(12)}`,
+            workspaceId: user.workspaceId,
+            platform: 'github',
+            platformId: String(payload.installation.id),
+          },
+          update: { workspaceId: user.workspaceId },
+        })
 
-      // Post comment back to PR on high/critical warning levels
-      if ((premortem.warningLevel === "high" || premortem.warningLevel === "critical") && installationId) {
-        let commentText = `### 🧠 Mnemo Pre-Mortem Risk Alert\n\n`;
-        commentText += `**Warning Level:** ${premortem.warningLevel.toUpperCase()}\n`;
-        commentText += `**Headline:** ${premortem.headline}\n\n`;
-        commentText += `${premortem.summary}\n\n`;
-        commentText += `#### Potential Failure Modes:\n`;
-        premortem.failureModes.forEach((mode, i) => {
-          commentText += `${i + 1}. **${mode.risk}**\n   * *Why history suggests this:* ${mode.whyHistorySuggestsIt}\n   * *Mitigation:* ${mode.mitigation}\n`;
-        });
-        
-        await postPRComment(owner, repo, prNumber, commentText, String(installationId));
-        commentPosted = true;
-      }
-
-      // Auto-retain decision on warning level >= medium
-      if (premortem.warningLevel !== "low") {
-        const result = await retainDecision(prText, "github", source, resolved.bankId);
-        
-        await db.decision.create({
-          data: {
-            id: generateId("dec"),
-            workspaceId: resolved.workspaceId,
-            hindsightId: result.record.id,
-            title: result.record.title,
-            decision: result.record.decision,
-            rationale: result.record.rationale || "",
-            alternatives: JSON.stringify(result.record.alternatives || []),
-            caveats: (result.record.caveats || []).join(", "),
-            scope: result.record.scope || "",
-            people: (result.record.people || []).join(", "),
-            source: "github_pr",
-            sourceUrl: payload.pull_request?.html_url || "",
-            repoFullName: `${owner}/${repo}`,
-            state: result.record.state
-          }
-        });
-        
-        decisionRetained = true;
-      }
-
-      return NextResponse.json({ skipped: false, premortem, commentPosted, decisionRetained });
-    } catch (err) {
-      console.error("Error analyzing PR in webhook:", err);
-      return NextResponse.json({ error: "Failed to analyze PR." }, { status: 500 });
-    }
-  }
-
-  // 2. Handle PR/Issue comments
-  const { comment, source } = extractGitHubComment(payload);
-  if (comment) {
-    const lower = comment.toLowerCase();
-    const isDecisionLike = DECISION_SIGNALS.some((signal) => lower.includes(signal));
-
-    if (isDecisionLike) {
-      try {
-        const premortem = await generatePremortem(comment, "github", resolved.bankId);
-        const result = await retainDecision(comment, "github", source, resolved.bankId);
-        
-        await db.decision.create({
-          data: {
-            id: generateId("dec"),
-            workspaceId: resolved.workspaceId,
-            hindsightId: result.record.id,
-            title: result.record.title,
-            decision: result.record.decision,
-            rationale: result.record.rationale || "",
-            alternatives: JSON.stringify(result.record.alternatives || []),
-            caveats: (result.record.caveats || []).join(", "),
-            scope: result.record.scope || "",
-            people: (result.record.people || []).join(", "),
-            source: "github_pr",
-            sourceUrl: payload.comment?.html_url || "",
-            repoFullName: `${owner}/${repo}`,
-            state: result.record.state
-          }
-        });
-
-        return NextResponse.json({ skipped: false, premortem, retained: result });
-      } catch (err: any) {
-        console.error("Error processing GitHub comment:", err);
-        return NextResponse.json({ error: "Failed to process comment." }, { status: 500 });
+        // Register repos
+        const repos = payload.repositories ?? []
+        for (const r of repos) {
+          await db.repo.upsert({
+            where: {
+              workspaceId_githubRepoId: {
+                workspaceId: user.workspaceId,
+                githubRepoId: String(r.id),
+              }
+            },
+            create: {
+              id: `repo_${nanoid(12)}`,
+              workspaceId: user.workspaceId,
+              githubRepoId: String(r.id),
+              fullName: r.full_name,
+              installationId: String(payload.installation.id),
+            },
+            update: { installationId: String(payload.installation.id) },
+          })
+        }
       }
     }
-  }
 
-  return NextResponse.json({ skipped: true, reason: "No decision-like comment or pull request action found." });
+    // Handle PR comments and review comments
+    if (event === 'pull_request_review_comment' || event === 'issue_comment') {
+      const installationId = String(payload.installation?.id)
+      const workspace = await resolveWorkspace('github', installationId)
+      if (!workspace) return new NextResponse('Not configured', { status: 200 })
+
+      const comment = payload.comment?.body ?? ''
+      if (!comment || !isDecision(comment)) return new NextResponse('Skipped', { status: 200 })
+
+      const pr = payload.pull_request ?? payload.issue
+      await ingestDecision({
+        bankId: workspace.bankId,
+        workspaceId: workspace.workspaceId,
+        rawText: comment,
+        source: 'github_pr',
+        sourceUrl: payload.comment?.html_url ?? '',
+        repoFullName: payload.repository?.full_name ?? '',
+        author: payload.comment?.user?.login ?? 'unknown',
+        timestamp: payload.comment?.created_at ?? new Date().toISOString(),
+        prTitle: pr?.title ?? '',
+      })
+    }
+
+    return new NextResponse('OK', { status: 200 })
+  } catch (err) {
+    console.error('Webhook execution failed:', err)
+    return new NextResponse('Internal Error', { status: 500 })
+  }
 }

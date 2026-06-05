@@ -1,81 +1,84 @@
-datasource db {
-  provider = "postgresql"
-}
-
-
-
 generator client {
   provider = "prisma-client-js"
 }
 
-model Workspace {
-  id              String            @id
-  name            String
-  hindsightBankId String            @unique @map("hindsight_bank_id")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  users           User[]
-  repos           Repo[]
-  installations   BotInstallation[]
-  decisions       Decision[]
+datasource db {
+  provider = "postgresql"
+}
 
-  @@map("workspaces")
+model Workspace {
+  id               String            @id @default(cuid())
+  name             String
+  hindsightBankId  String            @unique
+  createdAt        DateTime          @default(now())
+  users            User[]
+  repos            Repo[]
+  botInstallations BotInstallation[]
+  decisions        Decision[]
 }
 
 model User {
-  id          String    @id
-  workspaceId String    @map("workspace_id")
-  githubId    String    @unique @map("github_id")
-  githubLogin String    @map("github_login")
-  githubToken String?   @map("github_token") // Encrypted access token
-  role        String    @default("member")  // "owner" | "member"
-  createdAt   DateTime  @default(now()) @map("created_at")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@map("users")
+  id          String    @id @default(cuid())
+  workspaceId String
+  githubId    String    @unique
+  githubLogin String
+  githubToken String
+  avatarUrl   String    @default("")
+  role        String    @default("member")
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
 }
 
 model Repo {
-  id             String    @id
-  workspaceId    String    @map("workspace_id")
-  githubRepoId   String    @map("github_repo_id")
-  fullName       String    @map("full_name")   // e.g. "acme/api"
-  connectedAt    DateTime  @default(now()) @map("connected_at")
-  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  workspaceId    String
+  githubRepoId   String
+  fullName       String
+  installationId String    @default("")
+  private        Boolean   @default(false)
+  connectedAt    DateTime  @default(now())
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
 
   @@unique([workspaceId, githubRepoId])
-  @@map("repos")
 }
 
 model BotInstallation {
-  id            String    @id
-  workspaceId   String    @map("workspace_id")
-  platform      String    // "discord" | "slack" | "github"
-  platformId    String    @map("platform_id") // guild_id, team_id, installation_id
-  platformToken String?   @map("platform_token") // Encrypted platform token
-  installedAt   DateTime  @default(now()) @map("installed_at")
-  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  workspaceId   String
+  platform      String
+  platformId    String
+  platformToken String    @default("")
+  installedAt   DateTime  @default(now())
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
 
   @@unique([platform, platformId])
-  @@map("bot_installations")
 }
 
 model Decision {
-  id             String    @id
-  workspaceId    String    @map("workspace_id")
-  hindsightId    String?   @map("hindsight_id")
-  title          String
-  decision       String
-  rationale      String?
-  alternatives   String?   // JSON list of alternatives
-  caveats        String?   // Comma-separated caveats
-  scope          String?
-  people         String?   // Comma-separated authors/people
-  source         String    // 'github_pr' | 'slack' | 'discord' | 'manual'
-  sourceUrl      String?   @map("source_url")
-  repoFullName   String?   @map("repo_full_name")
-  state          String    @default("decided") // 'proposed' | 'decided' | 'reinforced' | 'revisited' | 'reversed' | 'stale'
-  createdAt      DateTime  @default(now()) @map("created_at")
-  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  workspaceId    String
+  hindsightId    String    @default("")
+  summary        String
+  rationale      String    @default("")
+  alternatives   String    @default("[]")
+  caveats        String    @default("")
+  scope          String    @default("")
+  author         String    @default("")
+  source         String    @default("manual")
+  sourceUrl      String    @default("")
+  repoFullName   String    @default("")
+  status         String    @default("standing")
+  createdAt      DateTime  @default(now())
+  reversedAt     DateTime?
+  reversalReason String    @default("")
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+}
 
-  @@map("decisions")
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
 }

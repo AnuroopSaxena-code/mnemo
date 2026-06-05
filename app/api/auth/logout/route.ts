@@ -1,7 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import { clearSessionCookie, getSession } from '@/lib/session'
+import { db } from '@/lib/db'
+import { env } from '@/lib/env'
+import { cookies } from 'next/headers'
 
-export async function POST(request: Request) {
-  const response = NextResponse.json({ success: true });
-  response.headers.set("Set-Cookie", "session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0");
-  return response;
+export async function POST() {
+  try {
+    const session = await getSession()
+    if (session) {
+      const cookieStore = await cookies()
+      const token = cookieStore.get('mnemo_session')?.value
+      if (token) await db.session.deleteMany({ where: { token } })
+    }
+  } catch (err) {
+    console.error('Logout failed to clean session:', err)
+  }
+  const res = NextResponse.redirect(new URL('/', env.appUrl))
+  res.headers.set('Set-Cookie', clearSessionCookie())
+  return res
 }

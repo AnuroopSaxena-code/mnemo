@@ -1,53 +1,65 @@
-export interface IntegrationStatus {
-  groq: boolean;
-  hindsight: boolean;
-  github: boolean;
-  slack: boolean;
-  discord: boolean;
-  whatsapp: boolean;
-}
+const required = [
+  'DATABASE_URL', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET',
+  'GITHUB_REDIRECT_URI', 'GITHUB_APP_ID',
+  'GITHUB_WEBHOOK_SECRET', 'HINDSIGHT_API_KEY', 'GROQ_API_KEY',
+  'SESSION_SECRET', 'NEXT_PUBLIC_APP_URL'
+]
 
-export function getIntegrationStatus(): IntegrationStatus {
-  return {
-    groq: Boolean(process.env.GROQ_API_KEY),
-    hindsight: Boolean(process.env.HINDSIGHT_API_KEY),
-    github: Boolean(
-      process.env.GITHUB_APP_ID &&
-      process.env.GITHUB_PRIVATE_KEY &&
-      process.env.GITHUB_WEBHOOK_SECRET
-    ),
-    slack: Boolean(
-      process.env.SLACK_BOT_TOKEN &&
-      process.env.SLACK_SIGNING_SECRET
-    ),
-    discord: Boolean(
-      process.env.DISCORD_APPLICATION_ID &&
-      process.env.DISCORD_BOT_TOKEN &&
-      process.env.DISCORD_PUBLIC_KEY
-    ),
-    whatsapp: Boolean(
-      process.env.TWILIO_ACCOUNT_SID &&
-      process.env.TWILIO_AUTH_TOKEN &&
-      process.env.TWILIO_WHATSAPP_NUMBER
-    )
-  };
-}
+// Allow bypass only during next build or when local environment lacks a DB string
+const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build' || !process.env.DATABASE_URL;
 
-export function validateEnv() {
-  const status = getIntegrationStatus();
-  const warnings: string[] = [];
-
-  if (!status.groq) warnings.push("GROQ_API_KEY is missing (fallback models will be used).");
-  if (!status.hindsight) warnings.push("HINDSIGHT_API_KEY is missing (fallback local memory will be used).");
-  if (!status.github) warnings.push("GitHub App credentials (GITHUB_APP_ID, GITHUB_PRIVATE_KEY, GITHUB_WEBHOOK_SECRET) are partially or fully missing.");
-  if (!status.slack) warnings.push("Slack Bot credentials (SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET) are missing.");
-  if (!status.discord) warnings.push("Discord Bot credentials (DISCORD_APPLICATION_ID, DISCORD_BOT_TOKEN, DISCORD_PUBLIC_KEY) are missing.");
-  if (!status.whatsapp) warnings.push("Twilio WhatsApp credentials (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER) are missing.");
-
-  if (warnings.length > 0) {
-    console.warn("⚠️ Mnemo Environment Status Warnings:");
-    warnings.forEach((w) => console.warn(`  - ${w}`));
-  } else {
-    console.log("✅ All Mnemo production integration environment keys are configured.");
+for (const key of required) {
+  if (!process.env[key] && !isNextBuild) {
+    throw new Error(`Missing required environment variable: ${key}`)
   }
+}
+
+const privateKeyRaw = process.env.GITHUB_APP_PRIVATE_KEY || process.env.GITHUB_PRIVATE_KEY || (isNextBuild ? 'bW9jay1rZXk=' : '');
+if (!privateKeyRaw) {
+  throw new Error("Missing required environment variable: GITHUB_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY")
+}
+
+// Check if private key is base64 encoded or a raw PEM block
+const getDecodedPrivateKey = (raw: string) => {
+  if (raw.includes('-----BEGIN RSA PRIVATE KEY-----') || raw.includes('-----BEGIN PRIVATE KEY-----')) {
+    // It's a raw PEM string, support escaped newlines if any
+    return raw.replace(/\\n/g, '\n');
+  }
+  try {
+    // Try base64 decoding
+    return Buffer.from(raw, 'base64').toString('utf-8');
+  } catch {
+    return raw;
+  }
+}
+
+export const env = {
+  databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mnemo',
+  github: {
+    clientId: process.env.GITHUB_CLIENT_ID || 'mock_client_id',
+    clientSecret: process.env.GITHUB_CLIENT_SECRET || 'mock_client_secret',
+    redirectUri: process.env.GITHUB_REDIRECT_URI || 'http://localhost:3000/api/auth/callback/github',
+    appId: process.env.GITHUB_APP_ID || 'mock_app_id',
+    privateKey: getDecodedPrivateKey(privateKeyRaw),
+    webhookSecret: process.env.GITHUB_WEBHOOK_SECRET || 'mock_webhook_secret',
+  },
+  hindsight: {
+    apiKey: process.env.HINDSIGHT_API_KEY || 'mock_hindsight_api_key',
+    baseUrl: process.env.HINDSIGHT_BASE_URL || 'https://api.hindsight.vectorize.io',
+  },
+  groq: { apiKey: process.env.GROQ_API_KEY || 'mock_groq_api_key' },
+  discord: {
+    clientId: process.env.DISCORD_CLIENT_ID ?? '',
+    clientSecret: process.env.DISCORD_CLIENT_SECRET ?? '',
+    botToken: process.env.DISCORD_BOT_TOKEN ?? '',
+    redirectUri: process.env.DISCORD_REDIRECT_URI ?? '',
+  },
+  slack: {
+    clientId: process.env.SLACK_CLIENT_ID ?? '',
+    clientSecret: process.env.SLACK_CLIENT_SECRET ?? '',
+    signingSecret: process.env.SLACK_SIGNING_SECRET ?? '',
+    redirectUri: process.env.SLACK_REDIRECT_URI ?? '',
+  },
+  sessionSecret: process.env.SESSION_SECRET || 'mock_session_secret_32_characters_long_minimum',
+  appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 }

@@ -2,7 +2,7 @@ import { differenceInMonths, parseISO } from "date-fns";
 import type { DecisionHealth, DecisionRecord, RecalledMemory } from "@/lib/types";
 
 export function scoreDecisionHealth(decision: DecisionRecord): DecisionHealth {
-  const ageMonths = Math.max(0, differenceInMonths(new Date(), parseISO(decision.date)));
+  const ageMonths = Math.max(0, differenceInMonths(new Date(), new Date(decision.date)));
   let score = 92;
   const reasons: string[] = [];
 

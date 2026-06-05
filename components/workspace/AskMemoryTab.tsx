@@ -38,12 +38,11 @@ export function AskMemoryTab({
     setLoading(true);
     setError(null);
     setAnswer(null);
-
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/memory/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, useMemory, bankId: showcaseMode ? "mnemo" : undefined }),
+        body: JSON.stringify({ query: q }),
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || "Request failed.");

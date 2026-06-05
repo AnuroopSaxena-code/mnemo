@@ -1,138 +1,94 @@
-import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { encrypt, generateId } from "@/lib/crypto";
-import { createSession } from "@/lib/session";
-import jwt from "jsonwebtoken";
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { createSession, setSessionCookie } from '@/lib/session'
+import { env } from '@/lib/env'
+import { nanoid } from 'nanoid'
 
-const SECRET = process.env.SESSION_SECRET || "default_session_secret_for_cookies";
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const code = searchParams.get('code')
+  if (!code) return NextResponse.redirect(new URL('/?error=no_code', env.appUrl))
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const code = searchParams.get("code");
-  const state = searchParams.get("state") || "";
-
-  if (!code) {
-    return NextResponse.json({ error: "Missing authorization code" }, { status: 400 });
-  }
-
-  // 1. Exchange code for access token
-  const clientId = process.env.GITHUB_CLIENT_ID || "";
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET || "";
-  
   try {
-    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-      method: "POST",
-      headers: { 
-        "Accept": "application/json", 
-        "Content-Type": "application/json",
-        "User-Agent": "mnemo-app"
-      },
+    // Exchange code for token
+    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code
-      })
-    });
+        client_id: env.github.clientId,
+        client_secret: env.github.clientSecret,
+        code,
+        redirect_uri: env.github.redirectUri,
+      }),
+    })
+    const tokenData = await tokenRes.json()
+    const access_token = tokenData.access_token
+    const error = tokenData.error
     
-    if (!tokenRes.ok) {
-      const errText = await tokenRes.text();
-      return NextResponse.json({ error: `GitHub token exchange failed: ${errText}` }, { status: 400 });
-    }
-    
-    const tokenData = await tokenRes.json();
-    const access_token = tokenData.access_token;
-    
-    if (!access_token) {
-      return NextResponse.json({ error: "Access token missing from GitHub response" }, { status: 400 });
+    if (error || !access_token) {
+      console.error('GitHub token exchange error:', error)
+      return NextResponse.redirect(new URL('/?error=oauth_failed', env.appUrl))
     }
 
-    // 2. Fetch GitHub user info
-    const userRes = await fetch("https://api.github.com/user", {
+    // Get GitHub user
+    const userRes = await fetch('https://api.github.com/user', {
       headers: { 
-        Authorization: `Bearer ${access_token}`,
-        "User-Agent": "mnemo-app"
-      }
-    });
-    
-    if (!userRes.ok) {
-      return NextResponse.json({ error: "Failed to fetch user profile from GitHub" }, { status: 400 });
-    }
-    
-    const githubUser = await userRes.json();
-    const githubId = String(githubUser.id);
-    const githubLogin = githubUser.login || "unknown";
+        Authorization: `Bearer ${access_token}`, 
+        Accept: 'application/json',
+        'User-Agent': 'mnemo-app'
+      },
+    })
+    const githubUser = await userRes.json()
 
-    // 3. Check if user already exists
-    let user = await db.user.findUnique({ where: { githubId } });
+    if (!githubUser.id) {
+      console.error('GitHub profile retrieval failed:', githubUser)
+      return NextResponse.redirect(new URL('/?error=profile_failed', env.appUrl))
+    }
+
+    // Find or create user + workspace
+    let user = await db.user.findUnique({ where: { githubId: String(githubUser.id) } })
+    let isNew = false
 
     if (!user) {
-      let workspaceId = generateId("ws");
-      let bankId = generateId("bank");
-      let role = "owner";
+      isNew = true
+      const workspaceId = `ws_${nanoid(12)}`
+      const bankId = `bank_${workspaceId}`
 
-      // If state matches a workspace invite token, parse and join that workspace
-      if (state && state.trim() !== "") {
-        try {
-          const decoded = jwt.verify(state, SECRET) as { workspaceId: string };
-          if (decoded && decoded.workspaceId) {
-            workspaceId = decoded.workspaceId;
-            role = "member";
-          }
-        } catch (err) {
-          console.error("Invalid workspace invite token in state:", err);
-        }
-      }
+      const workspace = await db.workspace.create({
+        data: {
+          id: workspaceId,
+          name: `${githubUser.login}'s workspace`,
+          hindsightBankId: bankId,
+        },
+      })
 
-      user = await db.$transaction(async (tx: any) => {
-        // Create Workspace if the user is owner (new workspace)
-        if (role === "owner") {
-          await tx.workspace.create({
-            data: {
-              id: workspaceId,
-              name: `${githubLogin}'s Workspace`,
-              hindsightBankId: bankId
-            }
-          });
-        }
-
-        // Create the user record
-        return tx.user.create({
-          data: {
-            id: generateId("usr"),
-            workspaceId,
-            githubId,
-            githubLogin,
-            githubToken: encrypt(access_token),
-            role
-          }
-        });
-      });
+      user = await db.user.create({
+        data: {
+          id: `usr_${nanoid(12)}`,
+          workspaceId: workspace.id,
+          githubId: String(githubUser.id),
+          githubLogin: githubUser.login,
+          githubToken: access_token,
+          avatarUrl: githubUser.avatar_url ?? '',
+          role: 'owner',
+        },
+      })
     } else {
-      // Update access token if user exists
-      user = await db.user.update({
+      // Refresh token
+      await db.user.update({
         where: { id: user.id },
-        data: { githubToken: encrypt(access_token) }
-      });
+        data: { githubToken: access_token, avatarUrl: githubUser.avatar_url ?? '' },
+      })
     }
 
-    if (!user) {
-      return NextResponse.json({ error: "Failed to persist user profile" }, { status: 500 });
-    }
+    const sessionToken = await createSession(user.id, user.workspaceId)
+    const dest = isNew ? '/onboarding' : '/dashboard'
 
-    // 4. Set session cookie and redirect to home
-    const session = createSession(user.id, user.workspaceId);
-    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/`;
-    const response = NextResponse.redirect(redirectUrl);
-    
-    // Cookie valid for 7 days
-    response.headers.set(
-      "Set-Cookie", 
-      `session=${session}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}`
-    );
-    
-    return response;
-  } catch (err: any) {
-    console.error("GitHub OAuth Callback Error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    const res = NextResponse.redirect(new URL(dest, env.appUrl))
+    res.headers.set('Set-Cookie', setSessionCookie(sessionToken))
+    return res
+  } catch (err) {
+    console.error('GitHub callback execution failed:', err)
+    return NextResponse.redirect(new URL('/?error=callback_error', env.appUrl))
   }
 }

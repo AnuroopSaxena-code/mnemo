@@ -41,7 +41,9 @@ export function Sidebar({
   onTabSelect,
   authInfo,
 }: SidebarProps) {
-  const connectedPlatforms = authInfo?.workspace?.integrations || [];
+  const connectedPlatforms = authInfo?.integrations
+    ? authInfo.integrations.map((i: any) => i.platform)
+    : [];
 
   return (
     <aside
@@ -343,7 +345,9 @@ export function MobileSidebar({
   onClose,
   authInfo,
 }: SidebarProps & { onClose: () => void }) {
-  const connectedPlatforms = authInfo?.workspace?.integrations || [];
+  const connectedPlatforms = authInfo?.integrations
+    ? authInfo.integrations.map((i: any) => i.platform)
+    : [];
 
   return (
     <motion.div
