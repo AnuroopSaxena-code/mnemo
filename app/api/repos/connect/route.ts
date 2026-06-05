@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
+import { env } from '@/lib/env'
 import { nanoid } from 'nanoid'
 
 export async function POST(req: NextRequest) {
@@ -26,6 +27,52 @@ export async function POST(req: NextRequest) {
       },
       update: { fullName },
     })
+
+    // Setup Webhook automatically
+    const webhookUrl = `${env.appUrl}/api/webhooks/github`
+    
+    // 1. Check existing hooks
+    const hooksRes = await fetch(`https://api.github.com/repos/${fullName}/hooks`, {
+      headers: {
+        Authorization: `Bearer ${session.user.githubToken}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'mnemo-app'
+      }
+    })
+    
+    if (hooksRes.ok) {
+      const hooks = await hooksRes.json()
+      const alreadyExists = Array.isArray(hooks) && hooks.some((hook: any) => hook.config?.url === webhookUrl)
+      
+      if (!alreadyExists) {
+        // 2. Create the hook
+        const createRes = await fetch(`https://api.github.com/repos/${fullName}/hooks`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.user.githubToken}`,
+            Accept: 'application/vnd.github+json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'mnemo-app'
+          },
+          body: JSON.stringify({
+            name: 'web',
+            active: true,
+            events: ['push', 'pull_request', 'issues', 'issue_comment'],
+            config: {
+              url: webhookUrl,
+              content_type: 'json',
+              secret: env.github.webhookSecret,
+              insecure_ssl: '0'
+            }
+          })
+        })
+        if (!createRes.ok) {
+          console.error('Failed to create webhook:', await createRes.text())
+        }
+      }
+    } else {
+      console.error('Failed to fetch hooks:', await hooksRes.text())
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {

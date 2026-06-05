@@ -14,6 +14,7 @@ export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps
   const [scanning, setScanning] = useState(false);
   const [scanningRepo, setScanningRepo] = useState("");
   const [repos, setRepos] = useState<{ id: string; name: string }[]>([]);
+  const [selectedRepos, setSelectedRepos] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,31 +34,54 @@ export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps
     fetchRepos();
   }, []);
 
-  async function startScan(repoId: string, name: string) {
-    setScanningRepo(name);
+  function toggleSelection(repoId: string) {
+    setSelectedRepos((prev) => {
+      const next = new Set(prev);
+      if (next.has(repoId)) next.delete(repoId);
+      else next.add(repoId);
+      return next;
+    });
+  }
+
+  async function startScan() {
+    if (selectedRepos.size === 0) return;
+
+    const selectedRepoObjects = repos.filter((r) => selectedRepos.has(r.id));
+    if (selectedRepos.size === 1) {
+      setScanningRepo((selectedRepoObjects[0] as any).fullName);
+    } else {
+      setScanningRepo(`${selectedRepos.size} repositories`);
+    }
+
     setScanning(true);
 
     try {
-      const res = await fetch("/api/repos/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoId, fullName: name, isPrivate: false })
-      });
-      if (res.ok) {
-        // Run sync comments after connection
-        await fetch("/api/repos/sync", {
+      const connectPromises = selectedRepoObjects.map(async (repo) => {
+        const name = (repo as any).fullName;
+        const res = await fetch("/api/repos/connect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fullName: name })
+          body: JSON.stringify({ repoId: repo.id, fullName: name, isPrivate: false })
         });
-        setTimeout(() => onConnected(name), 1800);
-      } else {
-        alert("Failed to connect repository in workspace.");
-        setScanning(false);
-      }
+        if (res.ok) {
+          // Run sync comments after connection
+          await fetch("/api/repos/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fullName: name })
+          });
+        } else {
+          console.error(`Failed to connect ${name}`);
+        }
+      });
+
+      await Promise.all(connectPromises);
+
+      const firstName = (selectedRepoObjects[0] as any).fullName;
+      setTimeout(() => onConnected(firstName), 1800);
     } catch (err) {
       console.error(err);
-      alert("Failed connecting repository.");
+      alert("Failed connecting repositories.");
       setScanning(false);
     }
   }
@@ -164,44 +188,80 @@ export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps
                   </div>
                 ) : (
                   <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                  {repos.map((repo) => (
-                    <li key={repo.id}>
-                      <button
-                        className="btn-press"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          width: "100%",
-                          padding: "12px 0",
-                          background: "transparent",
-                          border: "none",
-                          borderBottom: "1px solid var(--color-border)",
-                          cursor: "pointer",
-                          color: "var(--color-ink)",
-                        }}
-                        onClick={() => startScan(repo.id, (repo as any).fullName)}
-                      >
-                        <span className="flex items-center" style={{ gap: 8 }}>
-                          <span
-                            style={{
-                              width: 5,
-                              height: 5,
-                              borderRadius: "50%",
-                              background: "var(--color-green)",
-                            }}
-                            aria-hidden="true"
-                          />
-                          <span className="font-mono" style={{ fontSize: 13 }}>
-                            {(repo as any).fullName}
+                  {repos.map((repo) => {
+                    const isSelected = selectedRepos.has(repo.id);
+                    return (
+                      <li key={repo.id}>
+                        <button
+                          className="btn-press"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            width: "100%",
+                            padding: "12px 16px",
+                            background: isSelected ? "var(--color-surface-2)" : "transparent",
+                            border: "none",
+                            borderBottom: "1px solid var(--color-border)",
+                            borderLeft: isSelected ? "2px solid var(--color-accent)" : "2px solid transparent",
+                            cursor: "pointer",
+                            color: "var(--color-ink)",
+                            transition: "all 0.15s ease",
+                          }}
+                          onClick={() => toggleSelection(repo.id)}
+                        >
+                          <span className="flex items-center" style={{ gap: 8 }}>
+                            <span
+                              style={{
+                                width: 5,
+                                height: 5,
+                                borderRadius: "50%",
+                                background: "var(--color-green)",
+                                opacity: isSelected ? 1 : 0.4,
+                              }}
+                              aria-hidden="true"
+                            />
+                            <span className="font-mono" style={{ fontSize: 13, color: isSelected ? "var(--color-ink)" : "var(--color-ink-muted)" }}>
+                              {(repo as any).fullName}
+                            </span>
                           </span>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                        </button>
+                      </li>
+                    );
+                  })}
                   </ul>
                 )}
               </div>
+
+              {/* Continue Action */}
+              <AnimatePresence>
+                {selectedRepos.size > 0 && !loading && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: "auto", marginTop: 24 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <button
+                      className="btn-press font-mono"
+                      onClick={startScan}
+                      style={{
+                        width: "100%",
+                        padding: "12px 16px",
+                        background: "var(--color-accent)",
+                        color: "var(--color-bg)",
+                        border: "none",
+                        borderRadius: "var(--radius)",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Continue with {selectedRepos.size} selected {selectedRepos.size === 1 ? "repo" : "repos"}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
