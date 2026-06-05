@@ -14,7 +14,8 @@ export async function GET(request: Request) {
       include: { 
         workspace: {
           include: {
-            repos: true
+            repos: true,
+            installations: true
           }
         }
       }
@@ -35,7 +36,8 @@ export async function GET(request: Request) {
         id: user.workspaceId,
         name: user.workspace.name,
         bankId: user.workspace.hindsightBankId,
-        repos: user.workspace.repos.map((r) => r.fullName)
+        repos: user.workspace.repos.map((r) => r.fullName),
+        integrations: user.workspace.installations.map((i) => i.platform)
       }
     });
   } catch (err: any) {

@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
-import { ShowcaseToggle } from "./ShowcaseToggle";
+import { useState } from "react";
 
 interface SidebarProps {
   repos: string[];
@@ -11,8 +10,7 @@ interface SidebarProps {
   onRepoSelect: (repo: string) => void;
   activeTab: string;
   onTabSelect: (tab: string) => void;
-  showcaseMode?: boolean;
-  onShowcaseToggle?: (val: boolean) => void;
+  authInfo?: any;
 }
 
 const TABS = [
@@ -23,6 +21,17 @@ const TABS = [
   { id: "sources", label: "source inbox", index: "05" },
 ];
 
+const INTEGRATIONS = [
+  { id: "github", label: "GitHub App", connectUrl: "/api/auth/login/github" },
+  { id: "slack", label: "Slack Bot", connectUrl: "/api/integrations/slack/connect" },
+  { id: "discord", label: "Discord Bot", connectUrl: "/api/integrations/discord/connect" },
+];
+
+async function handleLogout() {
+  await fetch("/api/auth/logout", { method: "POST" });
+  window.location.reload();
+}
+
 export function Sidebar({
   repos,
   activeRepo,
@@ -30,35 +39,9 @@ export function Sidebar({
   onRepoSelect,
   activeTab,
   onTabSelect,
-  showcaseMode,
-  onShowcaseToggle,
+  authInfo,
 }: SidebarProps) {
-  const [statuses, setStatuses] = useState({
-    github: false,
-    slack: false,
-    discord: false,
-    whatsapp: false,
-  });
-
-  useEffect(() => {
-    async function fetchStatus() {
-      try {
-        const res = await fetch("/api/status");
-        if (res.ok) {
-          const data = await res.json();
-          setStatuses({
-            github: data.github,
-            slack: data.slack,
-            discord: data.discord,
-            whatsapp: data.whatsapp,
-          });
-        }
-      } catch (err) {
-        console.warn("Failed fetching integrations status:", err);
-      }
-    }
-    fetchStatus();
-  }, []);
+  const connectedPlatforms = authInfo?.workspace?.integrations || [];
 
   return (
     <aside
@@ -73,11 +56,6 @@ export function Sidebar({
         background: "var(--color-surface-1)",
       }}
     >
-      {/* Showcase Toggle */}
-      {onShowcaseToggle && (
-        <ShowcaseToggle isOn={!!showcaseMode} onToggle={onShowcaseToggle} />
-      )}
-
       {/* Wordmark + amber pulse dot */}
       <header
         className="flex items-center"
@@ -236,7 +214,7 @@ export function Sidebar({
         </ul>
       </nav>
 
-      {/* Active Syncs panel */}
+      {/* Active Syncs panel — dynamic with CONNECT buttons */}
       <nav style={{ padding: "0 24px", marginBottom: 32 }} aria-label="Integrations status">
         <p
           className="font-mono"
@@ -251,57 +229,104 @@ export function Sidebar({
           active syncs
         </p>
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-          {[
-            { id: "github", label: "GitHub App", active: statuses.github },
-            { id: "slack", label: "Slack Bot", active: statuses.slack },
-            { id: "discord", label: "Discord Bot", active: statuses.discord },
-            { id: "whatsapp", label: "WhatsApp Chat", active: statuses.whatsapp },
-          ].map((item) => (
-            <li key={item.id} style={{ display: "flex", alignItems: "center", fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--color-ink-dim)" }}>
-              <span
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: "50%",
-                  background: item.active ? "var(--color-green)" : "var(--color-accent)",
-                  marginRight: 10,
-                  flexShrink: 0,
-                  boxShadow: item.active ? "0 0 8px var(--color-green)" : "none",
-                }}
-              />
-              {item.label}
-              <span style={{ marginLeft: "auto", fontSize: 8, color: item.active ? "var(--color-green)" : "var(--color-ink-ghost)" }}>
-                {item.active ? "LIVE" : "OFFLINE"}
-              </span>
-            </li>
-          ))}
+          {INTEGRATIONS.map((item) => {
+            const isConnected = connectedPlatforms.includes(item.id);
+            return (
+              <li key={item.id} style={{ display: "flex", alignItems: "center", fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--color-ink-dim)" }}>
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: isConnected ? "var(--color-green)" : "var(--color-accent)",
+                    marginRight: 10,
+                    flexShrink: 0,
+                    boxShadow: isConnected ? "0 0 8px var(--color-green)" : "none",
+                  }}
+                />
+                {item.label}
+                {isConnected ? (
+                  <span style={{ marginLeft: "auto", fontSize: 8, color: "var(--color-green)" }}>
+                    LIVE
+                  </span>
+                ) : (
+                  <a
+                    href={item.connectUrl}
+                    style={{
+                      marginLeft: "auto",
+                      fontSize: 8,
+                      color: "var(--color-accent)",
+                      textDecoration: "none",
+                      fontFamily: "var(--font-mono)",
+                      letterSpacing: "0.05em",
+                      padding: "2px 6px",
+                      border: "1px solid var(--color-accent)",
+                      borderRadius: 3,
+                      transition: "background 150ms ease, color 150ms ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.target as HTMLElement).style.background = "var(--color-accent)";
+                      (e.target as HTMLElement).style.color = "var(--color-bg)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.target as HTMLElement).style.background = "transparent";
+                      (e.target as HTMLElement).style.color = "var(--color-accent)";
+                    }}
+                  >
+                    CONNECT
+                  </a>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
-      {/* Footer */}
+      {/* Footer with decision count + Logout */}
       <footer
         style={{
           padding: "0 24px",
           display: "flex",
           alignItems: "center",
+          justifyContent: "space-between",
           gap: 8,
         }}
       >
-        <span
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              width: 4,
+              height: 4,
+              borderRadius: "50%",
+              background: "var(--color-accent)",
+            }}
+            aria-hidden="true"
+          />
+          <p
+            className="font-mono"
+            style={{ fontSize: 11, color: "var(--color-ink-muted)", margin: 0 }}
+          >
+            {decisionCount} decisions retained
+          </p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="font-mono btn-press"
           style={{
-            width: 4,
-            height: 4,
-            borderRadius: "50%",
-            background: "var(--color-accent)",
+            fontSize: 9,
+            color: "var(--color-ink-ghost)",
+            background: "transparent",
+            border: "1px solid var(--color-border)",
+            borderRadius: 3,
+            padding: "3px 8px",
+            cursor: "pointer",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            transition: "color 150ms ease, border-color 150ms ease",
           }}
-          aria-hidden="true"
-        />
-        <p
-          className="font-mono"
-          style={{ fontSize: 11, color: "var(--color-ink-muted)", margin: 0 }}
         >
-          {decisionCount} decisions retained
-        </p>
+          Logout
+        </button>
       </footer>
     </aside>
   );
@@ -316,35 +341,9 @@ export function MobileSidebar({
   activeTab,
   onTabSelect,
   onClose,
-  showcaseMode,
-  onShowcaseToggle,
+  authInfo,
 }: SidebarProps & { onClose: () => void }) {
-  const [statuses, setStatuses] = useState({
-    github: false,
-    slack: false,
-    discord: false,
-    whatsapp: false,
-  });
-
-  useEffect(() => {
-    async function fetchStatus() {
-      try {
-        const res = await fetch("/api/status");
-        if (res.ok) {
-          const data = await res.json();
-          setStatuses({
-            github: data.github,
-            slack: data.slack,
-            discord: data.discord,
-            whatsapp: data.whatsapp,
-          });
-        }
-      } catch (err) {
-        console.warn("Failed fetching integrations status:", err);
-      }
-    }
-    fetchStatus();
-  }, []);
+  const connectedPlatforms = authInfo?.workspace?.integrations || [];
 
   return (
     <motion.div
@@ -407,18 +406,6 @@ export function MobileSidebar({
             {decisionCount} decisions
           </span>
         </header>
-
-        {onShowcaseToggle && (
-          <div style={{ marginBottom: 20 }}>
-            <ShowcaseToggle 
-              isOn={!!showcaseMode} 
-              onToggle={(val) => {
-                onShowcaseToggle(val);
-                onClose();
-              }} 
-            />
-          </div>
-        )}
 
         {/* Mobile Tabs */}
         <nav style={{ marginBottom: 24 }} aria-label="Agent features">
@@ -500,7 +487,7 @@ export function MobileSidebar({
           </ul>
         </nav>
 
-        {/* Mobile Active Syncs panel */}
+        {/* Mobile Active Syncs panel with CONNECT buttons */}
         <nav style={{ marginTop: 24 }} aria-label="Integrations status">
           <p
             className="font-mono"
@@ -513,32 +500,70 @@ export function MobileSidebar({
             active syncs
           </p>
           <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-            {[
-              { id: "github", label: "GitHub App", active: statuses.github },
-              { id: "slack", label: "Slack Bot", active: statuses.slack },
-              { id: "discord", label: "Discord Bot", active: statuses.discord },
-              { id: "whatsapp", label: "WhatsApp Chat", active: statuses.whatsapp },
-            ].map((item) => (
-              <li key={item.id} style={{ display: "flex", alignItems: "center", fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--color-ink-dim)" }}>
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: item.active ? "var(--color-green)" : "var(--color-accent)",
-                    marginRight: 10,
-                    flexShrink: 0,
-                    boxShadow: item.active ? "0 0 8px var(--color-green)" : "none",
-                  }}
-                />
-                {item.label}
-                <span style={{ marginLeft: "auto", fontSize: 9, color: item.active ? "var(--color-green)" : "var(--color-ink-ghost)" }}>
-                  {item.active ? "LIVE" : "OFFLINE"}
-                </span>
-              </li>
-            ))}
+            {INTEGRATIONS.map((item) => {
+              const isConnected = connectedPlatforms.includes(item.id);
+              return (
+                <li key={item.id} style={{ display: "flex", alignItems: "center", fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--color-ink-dim)" }}>
+                  <span
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: "50%",
+                      background: isConnected ? "var(--color-green)" : "var(--color-accent)",
+                      marginRight: 10,
+                      flexShrink: 0,
+                      boxShadow: isConnected ? "0 0 8px var(--color-green)" : "none",
+                    }}
+                  />
+                  {item.label}
+                  {isConnected ? (
+                    <span style={{ marginLeft: "auto", fontSize: 9, color: "var(--color-green)" }}>
+                      LIVE
+                    </span>
+                  ) : (
+                    <a
+                      href={item.connectUrl}
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: 9,
+                        color: "var(--color-accent)",
+                        textDecoration: "none",
+                        fontFamily: "var(--font-mono)",
+                        padding: "2px 6px",
+                        border: "1px solid var(--color-accent)",
+                        borderRadius: 3,
+                      }}
+                    >
+                      CONNECT
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </nav>
+
+        {/* Mobile Logout */}
+        <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--color-border)" }}>
+          <button
+            onClick={handleLogout}
+            className="font-mono btn-press"
+            style={{
+              fontSize: 10,
+              color: "var(--color-ink-ghost)",
+              background: "transparent",
+              border: "1px solid var(--color-border)",
+              borderRadius: 3,
+              padding: "6px 12px",
+              cursor: "pointer",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              width: "100%",
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </motion.aside>
     </motion.div>
   );

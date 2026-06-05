@@ -25,7 +25,6 @@ const suggestedQueries = [
 type WorkspaceTab = "premortem" | "ask" | "timeline" | "onboarding" | "sources";
 
 export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
-  const [showcaseMode, setShowcaseMode] = useState(true);
   const [activeRepo, setActiveRepo] = useState(repoName);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("premortem");
   const [decisionsList, setDecisionsList] = useState<DecisionRecord[]>(decisions);
@@ -52,9 +51,6 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
         if (res.ok) {
           const data = await res.json();
           setAuthInfo(data);
-          if (data.authenticated) {
-            setShowcaseMode(false);
-          }
         }
       } catch (err) {
         console.warn("Auth info check failed:", err);
@@ -63,7 +59,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
     checkAuth();
   }, []);
 
-  // 2. Fetch database-retained decisions in Live Mode
+  // 2. Fetch database-retained decisions
   const fetchDbDecisions = useCallback(async () => {
     try {
       const res = await fetch("/api/decisions");
@@ -77,30 +73,19 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
   }, []);
 
   useEffect(() => {
-    if (!showcaseMode) {
-      fetchDbDecisions();
-    }
-  }, [showcaseMode, fetchDbDecisions]);
+    fetchDbDecisions();
+  }, [fetchDbDecisions]);
 
-  // 3. Resolve active repositories and decisions based on Showcase status
-  const repos = showcaseMode
-    ? [repoName, "user-auth-gateway", "dashboard-frontend"]
-    : (authInfo?.workspace?.repos && authInfo.workspace.repos.length > 0
-        ? authInfo.workspace.repos
-        : [repoName]);
+  // 3. Resolve active repositories and decisions from live data
+  const repos = (authInfo?.workspace?.repos && authInfo.workspace.repos.length > 0)
+    ? authInfo.workspace.repos
+    : [repoName];
 
-  const activeDecisionsList = showcaseMode ? decisionsList : dbDecisions;
+  const activeDecisionsList = dbDecisions.length > 0 ? dbDecisions : decisionsList;
 
   const handleAddDecision = useCallback((newDec: DecisionRecord) => {
-    if (showcaseMode) {
-      setDecisionsList((prev) => {
-        if (prev.some((d) => d.id === newDec.id)) return prev;
-        return [newDec, ...prev];
-      });
-    } else {
-      fetchDbDecisions();
-    }
-  }, [showcaseMode, fetchDbDecisions]);
+    fetchDbDecisions();
+  }, [fetchDbDecisions]);
 
   const handleLoadProposal = useCallback((text: string, sourceType: SourceType, sourceDetail: string) => {
     setLoadedProposal(text);
@@ -125,8 +110,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
             onRepoSelect={setActiveRepo}
             activeTab={activeTab}
             onTabSelect={(tab) => setActiveTab(tab as WorkspaceTab)}
-            showcaseMode={showcaseMode}
-            onShowcaseToggle={setShowcaseMode}
+            authInfo={authInfo}
           />
         )}
 
@@ -169,7 +153,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                   initialSourceDetail={loadedSourceDetail}
                   onDecisionClick={setDetailDecision}
                   onAddDecision={handleAddDecision}
-                  showcaseMode={showcaseMode}
+                  showcaseMode={false}
                 />
               </motion.div>
             )}
@@ -185,7 +169,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 <AskMemoryTab
                   onDecisionClick={setDetailDecision}
                   suggestedQueries={suggestedQueries}
-                  showcaseMode={showcaseMode}
+                  showcaseMode={false}
                 />
               </motion.div>
             )}
@@ -216,7 +200,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 <OnboardingTab
                   decisions={activeDecisionsList}
                   onDecisionClick={setDetailDecision}
-                  showcaseMode={showcaseMode}
+                  showcaseMode={false}
                 />
               </motion.div>
             )}
@@ -247,8 +231,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
             activeTab={activeTab}
             onTabSelect={(tab) => setActiveTab(tab as WorkspaceTab)}
             onClose={() => setShowMobileSidebar(false)}
-            showcaseMode={showcaseMode}
-            onShowcaseToggle={setShowcaseMode}
+            authInfo={authInfo}
           />
         )}
       </AnimatePresence>
