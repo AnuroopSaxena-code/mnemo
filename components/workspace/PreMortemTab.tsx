@@ -708,6 +708,22 @@ export function PreMortemTab({
                       >
                         {rec.id}
                       </span>
+                      {(rec as any).inferred && (
+                        <span
+                          className="font-mono"
+                          style={{
+                            fontSize: "9px",
+                            color: "var(--color-accent)",
+                            background: "rgba(224, 130, 49, 0.1)",
+                            border: "1px solid var(--color-accent)",
+                            padding: "2px 6px",
+                            borderRadius: "var(--radius-sm)",
+                            textTransform: "uppercase"
+                          }}
+                        >
+                          AI Generated
+                        </span>
+                      )}
                       <span
                         className="font-mono"
                         style={{

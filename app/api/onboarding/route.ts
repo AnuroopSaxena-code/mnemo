@@ -47,7 +47,6 @@ export async function POST(request: Request) {
   try {
     const body = schema.parse(await request.json());
     
-    // Resolve workspace bankId from session cookie or payload
     let targetBankId = body.bankId;
     if (!targetBankId) {
       const session = await getSession();
@@ -68,29 +67,79 @@ export async function POST(request: Request) {
     const query = `What decisions should a new engineer know before working on ${body.service}?`;
     const memories = await recall(targetBankId, query, 8);
 
-    // Resolve vector citations to database records
     const hindsightIds = memories.map((m: any) => m.id).filter(Boolean);
     const dbDecisions = await db.decision.findMany({
       where: { hindsightId: { in: hindsightIds } }
     });
 
-    const decisions = memories.flatMap((m: any) => {
+    const explicitDecisions = [];
+    const unknownMemories = [];
+
+    for (const m of memories) {
       const dbDec = dbDecisions.find((d: any) => d.hindsightId === m.id);
-      if (!dbDec) return [];
-      const record = mapDbDecisionToRecord(dbDec);
+      if (dbDec) {
+        const record = mapDbDecisionToRecord(dbDec);
+        const health = scoreDecisionHealth(record as any);
+        explicitDecisions.push({
+          title: record.title,
+          whyItMatters: record.rationale || record.decision,
+          health,
+          source: record.source,
+          inferred: false
+        });
+      } else {
+        unknownMemories.push(m);
+      }
+    }
 
-      const health = scoreDecisionHealth(record as any);
+    let inferredDecisions: any[] = [];
+    if (unknownMemories.length > 0) {
+      try {
+        const { groq, MODEL } = require("@/lib/groq");
+        
+        // Truncate memory content to avoid token limits
+        const safeMemories = unknownMemories.map(m => ({
+          id: m.id,
+          content: typeof m.content === 'string' ? m.content.slice(0, 1000) : m.content
+        }));
 
-      return [{
-        title: record.title,
-        whyItMatters: record.rationale || record.decision,
-        health,
-        source: record.source
-      }];
-    });
+        const completion = await groq.chat.completions.create({
+          model: MODEL,
+          temperature: 0.1,
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content: "You are an AI architect. Extract 1 to 3 critical architectural or technical decisions from the following raw code chunks. Output strictly in JSON format: { \"decisions\": [ { \"title\": \"...\", \"rationale\": \"...\" } ] }"
+            },
+            {
+              role: "user",
+              content: `Code Snippets:\n${JSON.stringify(safeMemories)}`
+            }
+          ]
+        });
 
-    let summary = `Before touching ${body.service}, review these decisions because they encode the team's scars, reversals, and caveats.`;
-    if (decisions.length > 0) {
+        if (completion.choices[0].message.content) {
+          const parsed = JSON.parse(completion.choices[0].message.content);
+          if (parsed.decisions && Array.isArray(parsed.decisions)) {
+            inferredDecisions = parsed.decisions.map((d: any) => ({
+              title: d.title,
+              whyItMatters: d.rationale,
+              health: { label: "Watch", score: 50 }, // Inferred health is provisional
+              source: "Inferred from Codebase",
+              inferred: true
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to generate inferred decisions:", err);
+      }
+    }
+
+    const allDecisions = [...explicitDecisions, ...inferredDecisions].slice(0, 5);
+
+    let summary = `Before touching ${body.service}, review these structural patterns and recorded decisions to understand the system.`;
+    if (allDecisions.length > 0) {
       try {
         const { groq, MODEL } = require("@/lib/groq");
         const completion = await groq.chat.completions.create({
@@ -100,11 +149,11 @@ export async function POST(request: Request) {
           messages: [
             {
               role: "system",
-              content: "You are Mnemo. Summarize in one clear, concise sentence what a new engineer should look out for regarding these decisions."
+              content: "You are Mnemo. Summarize in one clear, concise sentence what a new engineer should look out for regarding these technical decisions."
             },
             {
               role: "user",
-              content: `Service: ${body.service}\nDecisions: ${JSON.stringify(decisions.map(d => d.title))}`
+              content: `Service: ${body.service}\nDecisions: ${JSON.stringify(allDecisions.map(d => d.title))}`
             }
           ]
         });
@@ -116,12 +165,13 @@ export async function POST(request: Request) {
       }
     }
 
-    const brief: OnboardingBrief = {
+    const brief = {
       service: body.service,
       summary,
-      decisions,
+      decisions: allDecisions,
       operations: [
-        { label: "Recall target workspace", state: "complete" as const, detail: `Fetched ${memories.length} memories for ${body.service}.` },
+        { label: "Recall target workspace", state: "complete" as const, detail: `Fetched ${memories.length} memory chunks.` },
+        { label: "Codebase Inference", state: inferredDecisions.length > 0 ? "complete" : "skipped" as const, detail: inferredDecisions.length > 0 ? `Inferred ${inferredDecisions.length} patterns directly from unmapped code.` : "All context mapped to explicit database records." },
         { label: "Health analysis", state: "complete" as const, detail: "Analyzed stability of relevant architectural decisions." }
       ]
     };

@@ -11,8 +11,13 @@ interface TimelineTabProps {
 
 export function TimelineTab({ decisions, onDecisionClick }: TimelineTabProps) {
   const [search, setSearch] = useState("");
+  const [inferredDecisions, setInferredDecisions] = useState<DecisionRecord[]>([]);
+  const [isInferring, setIsInferring] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = decisions.filter((d) => {
+  const allDecisions = [...decisions, ...inferredDecisions];
+
+  const filtered = allDecisions.filter((d) => {
     const q = search.toLowerCase();
     return (
       d.title.toLowerCase().includes(q) ||
@@ -21,6 +26,21 @@ export function TimelineTab({ decisions, onDecisionClick }: TimelineTabProps) {
       d.tags.some((t) => t.toLowerCase().includes(q))
     );
   });
+
+  async function handleInferTimeline() {
+    setIsInferring(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/decisions/infer');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to infer timeline");
+      setInferredDecisions(data.inferred || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error generating timeline");
+    } finally {
+      setIsInferring(false);
+    }
+  }
 
   return (
     <div
@@ -68,25 +88,44 @@ export function TimelineTab({ decisions, onDecisionClick }: TimelineTabProps) {
           </p>
         </div>
 
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Filter by keyword, service, or tag..."
-          className="input-minimal"
-          style={{
-            background: "var(--color-surface-2)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius)",
-            padding: "8px 12px",
-            color: "var(--color-ink)",
-            fontFamily: "var(--font-mono)",
-            fontSize: "12px",
-            width: "100%",
-            maxWidth: "300px",
-          }}
-        />
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          {decisions.length === 0 && inferredDecisions.length === 0 && (
+            <button 
+              onClick={handleInferTimeline}
+              disabled={isInferring}
+              className="cta-amber btn-press"
+              style={{ padding: "8px 16px", fontSize: "12px", height: "fit-content" }}
+            >
+              {isInferring ? "Inferring from codebase..." : "Generate Timeline from Codebase"}
+            </button>
+          )}
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filter by keyword, service, or tag..."
+            className="input-minimal"
+            style={{
+              background: "var(--color-surface-2)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius)",
+              padding: "8px 12px",
+              color: "var(--color-ink)",
+              fontFamily: "var(--font-mono)",
+              fontSize: "12px",
+              width: "100%",
+              maxWidth: "250px",
+            }}
+          />
+        </div>
       </header>
+
+      {error && (
+        <div style={{ padding: "12px", background: "var(--color-surface-1)", borderLeft: "2px solid var(--color-error)", color: "var(--color-error)", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
+          {error}
+        </div>
+      )}
 
       {/* Decisions timeline list */}
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -154,6 +193,21 @@ export function TimelineTab({ decisions, onDecisionClick }: TimelineTabProps) {
                       >
                         via {dec.source}
                       </span>
+                      {(dec as any).inferred && (
+                        <span
+                          className="font-mono"
+                          style={{
+                            fontSize: "9px",
+                            color: "var(--color-accent)",
+                            background: "rgba(224, 130, 49, 0.1)",
+                            padding: "2px 6px",
+                            borderRadius: "var(--radius-sm)",
+                            textTransform: "uppercase"
+                          }}
+                        >
+                          AI Generated
+                        </span>
+                      )}
                     </div>
                     <h3
                       className="font-mono"
@@ -408,7 +462,7 @@ export function TimelineTab({ decisions, onDecisionClick }: TimelineTabProps) {
               padding: "40px",
             }}
           >
-            No decisions match &quot;{search}&quot;.
+            No decisions exist. {decisions.length === 0 && !isInferring && "Click Generate Timeline to analyze your codebase architecture."}
           </p>
         )}
       </div>

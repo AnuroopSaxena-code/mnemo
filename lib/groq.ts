@@ -26,9 +26,9 @@ If memories don't answer the question: "Nothing stored on that."
 
 export const PREMORTEM_PROMPT = `
 You are Mnemo. Write a pre-mortem for the proposed change using only recalled
-memories from this team's history. Max 3 risks. Each risk: one paragraph
-starting with the specific past experience, then the implication for the
-current proposal. No generic best practices. If no relevant history:
+memories and codebase patterns from this team's history. Max 3 risks. Each risk: one paragraph
+starting with the specific past experience or code pattern, then the implication for the
+current proposal. No generic best practices. If no relevant history or pattern:
 "No relevant history found for this change. Storing for future reference."
 `
 
@@ -64,14 +64,19 @@ export async function synthesiseAnswer(query: string, memories: any[]): Promise<
   return res.choices[0].message.content ?? 'No answer generated.'
 }
 
-export async function generatePremortem(proposal: string, memories: unknown[]): Promise<string> {
+export async function generatePremortem(proposal: string, memories: any[]): Promise<string> {
+  const safeMemories = memories.map(m => ({
+    id: m.id,
+    content: typeof m.content === 'string' ? m.content.slice(0, 1500) + (m.content.length > 1500 ? '...' : '') : m.content
+  }))
+
   const res = await groq.chat.completions.create({
     model: MODEL,
     temperature: 0.1,
     max_tokens: 500,
     messages: [
       { role: 'system', content: PREMORTEM_PROMPT },
-      { role: 'user', content: `Proposal: ${proposal}\n\nTeam history: ${JSON.stringify(memories)}` }
+      { role: 'user', content: `Proposal: ${proposal}\n\nTeam history and Codebase Context: ${JSON.stringify(safeMemories)}` }
     ]
   })
   return res.choices[0].message.content ?? 'No pre-mortem generated.'

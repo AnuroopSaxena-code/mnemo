@@ -272,17 +272,35 @@ export function OnboardingTab({
                           marginBottom: "8px",
                         }}
                       >
-                        <h5
-                          className="font-mono"
-                          style={{
-                            fontSize: "13px",
-                            color: "var(--color-ink)",
-                            margin: 0,
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {idx + 1}. {decItem.title}
-                        </h5>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <h5
+                            className="font-mono"
+                            style={{
+                              fontSize: "13px",
+                              color: "var(--color-ink)",
+                              margin: 0,
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {idx + 1}. {decItem.title}
+                          </h5>
+                          {(decItem as any).inferred && (
+                            <span
+                              className="font-mono"
+                              style={{
+                                fontSize: "9px",
+                                color: "var(--color-accent)",
+                                background: "rgba(224, 130, 49, 0.1)",
+                                border: "1px solid var(--color-accent)",
+                                padding: "2px 6px",
+                                borderRadius: "var(--radius-sm)",
+                                textTransform: "uppercase"
+                              }}
+                            >
+                              AI Generated
+                            </span>
+                          )}
+                        </div>
 
                         <span
                           className="font-mono"

@@ -89,7 +89,32 @@ export async function POST(req: NextRequest) {
 
     const evidence = memories.map((m: any) => {
       const dbDec = dbDecisions.find((d: any) => d.hindsightId === m.id)
-      if (!dbDec) return null
+      if (!dbDec) {
+        return {
+          id: m.id,
+          text: m.content,
+          record: {
+            id: `inf_${m.id.substring(0, 8)}`,
+            title: typeof m.content === 'string' ? m.content.slice(0, 50) + '...' : 'Codebase context',
+            decision: "Inferred from codebase structure",
+            rationale: "Codebase pattern detected",
+            alternatives: [],
+            caveats: [],
+            scope: "global",
+            people: [],
+            date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+            state: "active",
+            sourceType: "github",
+            source: "Inferred from code context",
+            tags: [],
+            reinforcementCount: 0,
+            authorStatus: "active",
+            lifecycle: [],
+            content: m.content,
+            inferred: true
+          }
+        }
+      }
       return {
         id: m.id,
         text: m.content,
