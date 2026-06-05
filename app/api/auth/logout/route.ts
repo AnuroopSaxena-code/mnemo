@@ -16,6 +16,12 @@ export async function POST() {
     console.error('Logout failed to clean session:', err)
   }
   const res = NextResponse.redirect(new URL('/', env.appUrl))
-  res.headers.set('Set-Cookie', clearSessionCookie())
+  res.cookies.set('mnemo_session', '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+    secure: process.env.NODE_ENV === 'production',
+  })
   return res
 }

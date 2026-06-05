@@ -83,7 +83,13 @@ export async function GET(req: NextRequest) {
 
     const sessionToken = await createSession(user.id, user.workspaceId)
     const res = NextResponse.redirect(new URL('/', env.appUrl))
-    res.headers.set('Set-Cookie', setSessionCookie(sessionToken))
+    res.cookies.set('mnemo_session', sessionToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60,
+      secure: process.env.NODE_ENV === 'production',
+    })
     return res
   } catch (err: any) {
     console.error('GitHub callback execution failed:', err)
