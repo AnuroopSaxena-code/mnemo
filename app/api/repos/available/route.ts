@@ -28,7 +28,7 @@ export async function GET() {
       where: { workspaceId: session.workspaceId },
       select: { githubRepoId: true },
     })
-    const connectedIds = new Set(connected.map(r => r.githubRepoId))
+    const connectedIds = new Set(connected.map((r: any) => r.githubRepoId))
 
     return NextResponse.json({
       repos: githubRepos.map((r: Record<string, any>) => ({

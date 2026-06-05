@@ -80,14 +80,14 @@ client.once('ready', async () => {
     new SlashCommandBuilder()
       .setName('lore')
       .setDescription('Query your engineering decision memory')
-      .addStringOption(o =>
+      .addStringOption((o: any) =>
         o.setName('question').setDescription('What do you want to know?').setRequired(true)
       )
   ]
 
   const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN!)
   await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!), {
-    body: commands.map(c => c.toJSON())
+    body: commands.map((c: any) => c.toJSON())
   })
 })
 

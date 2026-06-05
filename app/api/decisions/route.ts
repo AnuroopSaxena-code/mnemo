@@ -13,18 +13,18 @@ export async function GET() {
       take: 100,
     })
 
-    const formatted = decisions.map(d => ({
+    const formatted = decisions.map((d: any) => ({
       id: d.id,
       title: d.summary.length > 60 ? d.summary.slice(0, 60) + '...' : d.summary,
       decision: d.summary,
       rationale: d.rationale || "not stated",
       alternatives: [],
-      caveats: d.caveats ? d.caveats.split(",").map(c => c.trim()) : [],
+      caveats: d.caveats ? d.caveats.split(",").map((c: any) => c.trim()) : [],
       scope: d.scope || "global",
       people: [d.author],
       date: new Date(d.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
       state: d.status as any,
-      sourceType: d.source.includes('github') ? 'github' : d.source.includes('slack') ? 'slack' : d.source.includes('discord') ? 'discord' : 'manual',
+      sourceType: (d.source.includes('github') ? 'github' : d.source.includes('slack') ? 'slack' : d.source.includes('discord') ? 'discord' : 'manual') as any,
       source: d.source,
       sourceUrl: d.sourceUrl || undefined,
       tags: d.scope ? [d.scope] : [],

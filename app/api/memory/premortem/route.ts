@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       risk: p.split("\n")[0]?.replace(/^risk:\s*/i, '').slice(0, 100) || `Risk Factor #${idx + 1}`,
       whyHistorySuggestsIt: p,
       mitigation: "Review historical precedent and define guardrails before merging.",
-      citations: evidence.slice(0, 2).map(e => e.record.id)
+      citations: evidence.slice(0, 2).map((e: any) => e.record.id)
     }))
 
     const operations = [

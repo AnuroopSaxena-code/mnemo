@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       decision: result.decision.summary,
       rationale: result.decision.rationale || "not stated",
       alternatives: [],
-      caveats: result.decision.caveats ? result.decision.caveats.split(",").map(c => c.trim()) : [],
+      caveats: result.decision.caveats ? result.decision.caveats.split(",").map((c: any) => c.trim()) : [],
       scope: result.decision.scope || "global",
       people: [result.decision.author],
       date: new Date(result.decision.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),

@@ -23,7 +23,7 @@ export async function GET() {
       workspace: { id: session.workspaceId },
       repos,
       decisions,
-      integrations: integrations.map(i => ({ platform: i.platform, connectedAt: i.installedAt })),
+      integrations: integrations.map((i: any) => ({ platform: i.platform, connectedAt: i.installedAt })),
     })
   } catch (err) {
     console.error('Failed to retrieve current user info:', err)
