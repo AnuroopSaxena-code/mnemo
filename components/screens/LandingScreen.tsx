@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 
 interface LandingScreenProps {
   onConnect: () => void;
+  authError?: string | null;
 }
 
 /* Ticker fragments — real-looking engineering decisions, truncated at ~60 chars */
@@ -33,7 +34,7 @@ const TICKER_RIGHT = [
   "moved to event sourcing \u00b7 orders \u00b7 15mo ago",
 ];
 
-export function LandingScreen({ onConnect }: LandingScreenProps) {
+export function LandingScreen({ onConnect, authError }: LandingScreenProps) {
   return (
     <motion.section
       style={{
@@ -186,6 +187,32 @@ export function LandingScreen({ onConnect }: LandingScreenProps) {
             </div>
           </div>
         </motion.div>
+
+        {/* Error banner */}
+        {authError && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            role="alert"
+            aria-live="assertive"
+            style={{
+              marginTop: 24,
+              padding: "10px 16px",
+              background: "rgba(255,80,80,0.08)",
+              border: "1px solid rgba(255,80,80,0.3)",
+              borderRadius: 6,
+              width: "100%",
+            }}
+          >
+            <p
+              className="font-mono"
+              style={{ fontSize: 11, color: "#ff6060", margin: 0, wordBreak: "break-all" }}
+            >
+              ⚠ auth error: {authError}
+            </p>
+          </motion.div>
+        )}
 
         {/* CTA */}
         <motion.div

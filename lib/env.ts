@@ -71,5 +71,5 @@ export const env = {
     redirectUri: process.env.SLACK_REDIRECT_URI ?? '',
   },
   sessionSecret: process.env.SESSION_SECRET || 'mock_session_secret_32_characters_long_minimum',
-  appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  appUrl: (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, ''),
 }

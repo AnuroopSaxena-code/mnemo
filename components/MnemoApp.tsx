@@ -14,10 +14,21 @@ interface MnemoAppProps {
   initialDecisions: DecisionRecord[];
 }
 
+function getAuthError(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const error = params.get("error");
+  const message = params.get("message");
+  if (!error) return null;
+  if (message) return `${error}: ${decodeURIComponent(message)}`;
+  return error;
+}
+
 export function MnemoApp({ initialDecisions }: MnemoAppProps) {
   const [screen, setScreen] = useState<AppScreen>("loading");
   const [repoName, setRepoName] = useState("acme-devtools");
   const [authInfo, setAuthInfo] = useState<any>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   async function checkAuth() {
     try {
@@ -46,6 +57,8 @@ export function MnemoApp({ initialDecisions }: MnemoAppProps) {
   }
 
   useEffect(() => {
+    const err = getAuthError();
+    if (err) setAuthError(err);
     checkAuth();
   }, []);
 
@@ -75,7 +88,7 @@ export function MnemoApp({ initialDecisions }: MnemoAppProps) {
         )}
 
         {screen === "landing" && (
-          <LandingScreen key="landing" onConnect={handleConnect} />
+          <LandingScreen key="landing" onConnect={handleConnect} authError={authError} />
         )}
 
         {screen === "connecting" && (

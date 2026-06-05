@@ -3,8 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("PRISMA_DATABASE_URL")
 }
+
 
 model Workspace {
   id               String            @id @default(cuid())
