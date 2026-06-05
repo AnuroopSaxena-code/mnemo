@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
-  if (!code) return NextResponse.redirect(new URL('/dashboard?error=slack_failed', env.appUrl))
+  if (!code) return NextResponse.redirect(new URL('/?error=slack_failed', env.appUrl))
 
   try {
     const tokenRes = await fetch('https://slack.com/api/oauth.v2.access', {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const data = await tokenRes.json()
     if (!data.ok) {
       console.error('Slack OAuth token exchange failed:', data)
-      return NextResponse.redirect(new URL('/dashboard?error=slack_failed', env.appUrl))
+      return NextResponse.redirect(new URL('/?error=slack_failed', env.appUrl))
     }
 
     await db.botInstallation.upsert({
@@ -41,9 +41,9 @@ export async function GET(req: NextRequest) {
       update: { workspaceId: session.workspaceId, platformToken: data.access_token },
     })
 
-    return NextResponse.redirect(new URL('/dashboard?connected=slack', env.appUrl))
+    return NextResponse.redirect(new URL('/?connected=slack', env.appUrl))
   } catch (err) {
     console.error('Slack callback failed:', err)
-    return NextResponse.redirect(new URL('/dashboard?error=slack_callback_error', env.appUrl))
+    return NextResponse.redirect(new URL('/?error=slack_callback_error', env.appUrl))
   }
 }

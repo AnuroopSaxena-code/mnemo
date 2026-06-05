@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
-  if (!code) return NextResponse.redirect(new URL('/dashboard?error=discord_failed', env.appUrl))
+  if (!code) return NextResponse.redirect(new URL('/?error=discord_failed', env.appUrl))
 
   try {
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     if (!guildId) {
       console.error('Discord OAuth did not return guild ID:', tokenData)
-      return NextResponse.redirect(new URL('/dashboard?error=discord_no_guild', env.appUrl))
+      return NextResponse.redirect(new URL('/?error=discord_no_guild', env.appUrl))
     }
 
     await db.botInstallation.upsert({
@@ -44,9 +44,9 @@ export async function GET(req: NextRequest) {
       update: { workspaceId: session.workspaceId },
     })
 
-    return NextResponse.redirect(new URL('/dashboard?connected=discord', env.appUrl))
+    return NextResponse.redirect(new URL('/?connected=discord', env.appUrl))
   } catch (err) {
     console.error('Discord callback failed:', err)
-    return NextResponse.redirect(new URL('/dashboard?error=discord_callback_error', env.appUrl))
+    return NextResponse.redirect(new URL('/?error=discord_callback_error', env.appUrl))
   }
 }

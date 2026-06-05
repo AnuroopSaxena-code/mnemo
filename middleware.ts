@@ -10,9 +10,6 @@ export function middleware(req: NextRequest) {
   if (!isPublic && !session) {
     return NextResponse.redirect(new URL('/', req.url))
   }
-  if (session && pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
-  }
   return NextResponse.next()
 }
 

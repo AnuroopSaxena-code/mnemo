@@ -82,9 +82,7 @@ export async function GET(req: NextRequest) {
     }
 
     const sessionToken = await createSession(user.id, user.workspaceId)
-    const dest = isNew ? '/onboarding' : '/dashboard'
-
-    const res = NextResponse.redirect(new URL(dest, env.appUrl))
+    const res = NextResponse.redirect(new URL('/', env.appUrl))
     res.headers.set('Set-Cookie', setSessionCookie(sessionToken))
     return res
   } catch (err) {
