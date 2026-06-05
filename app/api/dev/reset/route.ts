@@ -6,8 +6,11 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     await db.decision.deleteMany({})
-    await db.workspace.deleteMany({})
+    await db.repo.deleteMany({})
+    await db.botInstallation.deleteMany({})
+    await db.session.deleteMany({})
     await db.user.deleteMany({})
+    await db.workspace.deleteMany({})
 
     return NextResponse.json({ message: 'Database reset successfully. You can now log in again to start completely fresh!' })
   } catch (err: any) {

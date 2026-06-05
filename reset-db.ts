@@ -1,3 +1,5 @@
+import { config } from 'dotenv';
+config({ path: '.env.development.local' });
 import { db } from './lib/db';
 
 async function main() {
