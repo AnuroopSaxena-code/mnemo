@@ -21,8 +21,11 @@ export function OnboardingTab({
 }: OnboardingTabProps) {
   // Compute dynamic topics based on existing decisions
   const dynamicTopics = Array.from(new Set(decisions.map(d => d.scope || "General Architecture"))).filter(s => s && s.toLowerCase() !== "global" && s.toLowerCase() !== "not stated");
+  const [repoDirs, setRepoDirs] = useState<string[]>([]);
+  
   const SERVICE_OPTIONS = [
     { id: activeRepo || "full-codebase", label: activeRepo ? `${activeRepo} Overview` : "Full Codebase Overview" },
+    ...repoDirs.map(dir => ({ id: `Directory: ${dir}`, label: `Directory: ${dir}/` })),
     ...dynamicTopics.map(topic => ({ id: topic, label: `Component: ${topic}` }))
   ];
 
@@ -33,6 +36,16 @@ export function OnboardingTab({
 
   useEffect(() => {
     setSelectedService(activeRepo || "full-codebase");
+    
+    // Fetch repository structure
+    if (activeRepo) {
+      fetch(`/api/repos/tree?fullName=${activeRepo}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.dirs) setRepoDirs(data.dirs);
+        })
+        .catch(err => console.error("Failed to fetch repo tree", err));
+    }
   }, [activeRepo]);
 
   useEffect(() => {

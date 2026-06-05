@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "system",
-          content: "You are an AI architect. Infer a historical timeline of 3-5 technical decisions based on these raw code snippets. If snippets are empty, generate 3 foundational Day-1 decisions for setting up a standard web project. Output strictly in JSON format: { \"decisions\": [ { \"title\": \"...\", \"decision\": \"...\", \"rationale\": \"...\", \"scope\": \"...\", \"source\": \"...\" } ] }. Provide a logical title, what was decided, rationale, scope, and use 'Inferred from codebase structure' (or 'AI Generated Generic Best Practice' if snippets are empty) as the source."
+          content: "You are an AI architect. Infer a historical timeline of 5-8 technical decisions based on these raw code snippets. If snippets are empty, generate 5 foundational Day-1 decisions for setting up a standard web project. Output strictly in JSON format: { \"decisions\": [ { \"title\": \"...\", \"decision\": \"...\", \"rationale\": \"...\", \"scope\": \"...\", \"source\": \"...\" } ] }. Provide a logical title, what was decided, rationale, scope, and use 'Inferred from codebase structure' (or 'AI Generated Generic Best Practice' if snippets are empty) as the source."
         },
         {
           role: "user",

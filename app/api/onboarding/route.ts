@@ -110,7 +110,7 @@ export async function POST(request: Request) {
         messages: [
           {
             role: "system",
-            content: "You are an AI architect. Extract 1 to 3 critical architectural or technical decisions from the following raw code chunks. If chunks are empty, generate 3 generic architectural best practices for onboarding. Output strictly in JSON format: { \"decisions\": [ { \"title\": \"...\", \"rationale\": \"...\" } ] }"
+            content: "You are an AI architect. Extract 3 to 6 critical architectural or technical decisions from the following raw code chunks. If chunks are empty, generate 4 generic architectural best practices for onboarding. Output strictly in JSON format: { \"decisions\": [ { \"title\": \"...\", \"rationale\": \"...\" } ] }"
           },
             {
               role: "user",
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
       console.warn("Failed to generate inferred decisions:", err);
     }
 
-    const allDecisions = [...explicitDecisions, ...inferredDecisions].slice(0, 5);
+    const allDecisions = [...explicitDecisions, ...inferredDecisions].slice(0, 8);
 
     let summary = `Before touching ${body.service}, review these structural patterns and recorded decisions to understand the system.`;
     if (allDecisions.length > 0) {
