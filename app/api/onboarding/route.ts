@@ -106,9 +106,36 @@ export async function POST(request: Request) {
       };
     });
 
+    let summary = `Before touching ${body.service}, review these decisions because they encode the team's scars, reversals, and caveats.`;
+    if (decisions.length > 0) {
+      try {
+        const { groq, MODEL } = require("@/lib/groq");
+        const completion = await groq.chat.completions.create({
+          model: MODEL,
+          temperature: 0.2,
+          max_tokens: 150,
+          messages: [
+            {
+              role: "system",
+              content: "You are Mnemo. Summarize in one clear, concise sentence what a new engineer should look out for regarding these decisions."
+            },
+            {
+              role: "user",
+              content: `Service: ${body.service}\nDecisions: ${JSON.stringify(decisions.map(d => d.title))}`
+            }
+          ]
+        });
+        if (completion.choices[0].message.content) {
+          summary = completion.choices[0].message.content;
+        }
+      } catch (err) {
+        console.warn("Failed to generate dynamic onboarding summary:", err);
+      }
+    }
+
     const brief: OnboardingBrief = {
       service: body.service,
-      summary: `Before touching ${body.service}, review these decisions because they encode the team's scars, reversals, and caveats.`,
+      summary,
       decisions,
       operations: [
         { label: "Recall target workspace", state: "complete" as const, detail: `Fetched ${memories.length} memories for ${body.service}.` },

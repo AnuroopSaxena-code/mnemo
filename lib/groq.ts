@@ -2,7 +2,7 @@ import Groq from 'groq-sdk'
 import { env } from './env'
 
 export const groq = new Groq({ apiKey: env.groq.apiKey })
-export const MODEL = 'qwen-qwen3-32b'
+export const MODEL = 'llama-3.3-70b-versatile'
 
 export const EXTRACTION_PROMPT = `
 You are an engineering knowledge extractor. Extract from the raw text:

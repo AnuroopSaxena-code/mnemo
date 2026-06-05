@@ -5,11 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface ConnectRepoModalProps {
   onConnected: (repoName: string) => void;
+  onClose?: () => void;
 }
 
 import { useEffect } from "react";
 
-export function ConnectRepoModal({ onConnected }: ConnectRepoModalProps) {
+export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps) {
   const [repoUrl, setRepoUrl] = useState("");
   const [showBrowse, setShowBrowse] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -81,7 +82,7 @@ export function ConnectRepoModal({ onConnected }: ConnectRepoModalProps) {
   return (
     <motion.div
       className="flex items-center justify-center"
-      style={{ position: "fixed", inset: 0, zIndex: 20, background: "var(--color-bg)" }}
+      style={{ position: "fixed", inset: 0, zIndex: 20, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.3 } }}
@@ -130,6 +131,26 @@ export function ConnectRepoModal({ onConnected }: ConnectRepoModalProps) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  style={{
+                    position: "absolute",
+                    top: -16,
+                    right: -16,
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--color-ink-muted)",
+                    fontSize: 22,
+                    cursor: "pointer",
+                    padding: 8,
+                  }}
+                  className="btn-press"
+                  aria-label="Close"
+                >
+                  &times;
+                </button>
+              )}
               <h2
                 className="font-heading"
                 style={{

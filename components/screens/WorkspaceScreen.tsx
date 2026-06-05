@@ -9,6 +9,7 @@ import { TimelineTab } from "@/components/workspace/TimelineTab";
 import { OnboardingTab } from "@/components/workspace/OnboardingTab";
 import { SourcesTab } from "@/components/workspace/SourcesTab";
 import { DecisionDetailScreen } from "@/components/screens/DecisionDetailScreen";
+import { ConnectRepoModal } from "@/components/screens/ConnectRepoModal";
 import type { DecisionRecord, SourceType } from "@/lib/types";
 
 interface WorkspaceScreenProps {
@@ -30,6 +31,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
   const [decisionsList, setDecisionsList] = useState<DecisionRecord[]>(decisions);
   const [dbDecisions, setDbDecisions] = useState<DecisionRecord[]>([]);
   const [authInfo, setAuthInfo] = useState<any>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
   
   const [detailDecision, setDetailDecision] = useState<DecisionRecord | null>(null);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
@@ -111,6 +113,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
             activeTab={activeTab}
             onTabSelect={(tab) => setActiveTab(tab as WorkspaceTab)}
             authInfo={authInfo}
+            onAddRepoClick={() => setShowConnectModal(true)}
           />
         )}
 
@@ -232,6 +235,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
             onTabSelect={(tab) => setActiveTab(tab as WorkspaceTab)}
             onClose={() => setShowMobileSidebar(false)}
             authInfo={authInfo}
+            onAddRepoClick={() => setShowConnectModal(true)}
           />
         )}
       </AnimatePresence>
@@ -242,6 +246,21 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
           <DecisionDetailScreen
             decision={detailDecision}
             onBack={() => setDetailDecision(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Connect Repo Modal Overlay */}
+      <AnimatePresence>
+        {showConnectModal && (
+          <ConnectRepoModal
+            onConnected={(name) => {
+              setShowConnectModal(false);
+              setActiveRepo(name);
+              fetchDbDecisions();
+              window.location.reload();
+            }}
+            onClose={() => setShowConnectModal(false)}
           />
         )}
       </AnimatePresence>

@@ -7,11 +7,21 @@ export async function GET() {
   if (!session) return NextResponse.json({ user: null })
 
   try {
-    const [repos, decisions, integrations] = await Promise.all([
+    let [repos, decisions, integrations] = await Promise.all([
       db.repo.findMany({ where: { workspaceId: session.workspaceId } }),
       db.decision.count({ where: { workspaceId: session.workspaceId } }),
       db.botInstallation.findMany({ where: { workspaceId: session.workspaceId } }),
     ])
+
+    if (decisions === 0) {
+      const workspace = await db.workspace.findUnique({ where: { id: session.workspaceId } })
+      if (workspace) {
+        const repoName = repos[0]?.fullName || `${session.user.githubLogin}/mnemo`
+        const { seedWorkspace } = require('@/lib/seed')
+        await seedWorkspace(session.workspaceId, workspace.hindsightBankId, repoName)
+        decisions = await db.decision.count({ where: { workspaceId: session.workspaceId } })
+      }
+    }
 
     return NextResponse.json({
       user: {

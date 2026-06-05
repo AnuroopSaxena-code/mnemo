@@ -4,13 +4,14 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 
 interface SidebarProps {
-  repos: string[];
+  repos: any[];
   activeRepo: string;
   decisionCount: number;
   onRepoSelect: (repo: string) => void;
   activeTab: string;
   onTabSelect: (tab: string) => void;
   authInfo?: any;
+  onAddRepoClick?: () => void;
 }
 
 const TABS = [
@@ -40,6 +41,7 @@ export function Sidebar({
   activeTab,
   onTabSelect,
   authInfo,
+  onAddRepoClick,
 }: SidebarProps) {
   const connectedPlatforms = authInfo?.integrations
     ? authInfo.integrations.map((i: any) => i.platform)
@@ -170,12 +172,13 @@ export function Sidebar({
         </p>
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {repos.map((repo) => {
-            const isActive = repo === activeRepo;
+            const repoNameString = typeof repo === "string" ? repo : repo.fullName;
+            const isActive = repoNameString === activeRepo;
             return (
-              <li key={repo}>
+              <li key={repoNameString}>
                 <button
                   className="btn-press"
-                  onClick={() => onRepoSelect(repo)}
+                  onClick={() => onRepoSelect(repoNameString)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -208,11 +211,33 @@ export function Sidebar({
                       flexShrink: 0,
                     }}
                   />
-                  {repo}
+                  {repoNameString}
                 </button>
               </li>
             );
           })}
+          {onAddRepoClick && (
+            <li style={{ marginTop: 8, padding: "0 24px" }}>
+              <button
+                onClick={onAddRepoClick}
+                className="font-mono btn-press"
+                style={{
+                  background: "transparent",
+                  border: "1px dashed var(--color-border)",
+                  borderRadius: "var(--radius)",
+                  padding: "6px 12px",
+                  width: "100%",
+                  color: "var(--color-ink-muted)",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                  textAlign: "center",
+                  transition: "all 150ms ease",
+                }}
+              >
+                + CONNECT REPO
+              </button>
+            </li>
+          )}
         </ul>
       </nav>
 
@@ -344,6 +369,7 @@ export function MobileSidebar({
   onTabSelect,
   onClose,
   authInfo,
+  onAddRepoClick,
 }: SidebarProps & { onClose: () => void }) {
   const connectedPlatforms = authInfo?.integrations
     ? authInfo.integrations.map((i: any) => i.platform)
@@ -459,35 +485,61 @@ export function MobileSidebar({
             connected repos
           </p>
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-            {repos.map((repo) => (
-              <li key={repo}>
+            {repos.map((repo) => {
+              const repoNameString = typeof repo === "string" ? repo : repo.fullName;
+              return (
+                <li key={repoNameString}>
+                  <button
+                    className="btn-press"
+                    onClick={() => {
+                      onRepoSelect(repoNameString);
+                      onClose();
+                    }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "10px 0",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: "1px solid var(--color-border)",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 13,
+                      color:
+                        repoNameString === activeRepo
+                          ? "var(--color-accent)"
+                          : "var(--color-ink-dim)",
+                      textAlign: "left",
+                    }}
+                  >
+                    {repoNameString}
+                  </button>
+                </li>
+              );
+            })}
+            {onAddRepoClick && (
+              <li style={{ marginTop: 12 }}>
                 <button
-                  className="btn-press"
                   onClick={() => {
-                    onRepoSelect(repo);
+                    onAddRepoClick();
                     onClose();
                   }}
+                  className="font-mono btn-press"
                   style={{
-                    display: "block",
-                    width: "100%",
-                    padding: "10px 0",
                     background: "transparent",
-                    border: "none",
-                    borderBottom: "1px solid var(--color-border)",
+                    border: "1px dashed var(--color-border)",
+                    borderRadius: "var(--radius)",
+                    padding: "8px 0",
+                    width: "100%",
+                    color: "var(--color-ink-muted)",
+                    fontSize: "12px",
                     cursor: "pointer",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 13,
-                    color:
-                      repo === activeRepo
-                        ? "var(--color-accent)"
-                        : "var(--color-ink-dim)",
-                    textAlign: "left",
                   }}
                 >
-                  {repo}
+                  + CONNECT REPO
                 </button>
               </li>
-            ))}
+            )}
           </ul>
         </nav>
 
