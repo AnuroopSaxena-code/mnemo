@@ -75,8 +75,8 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
   }, [fetchDbDecisions]);
 
   // 3. Resolve active repositories and decisions from live data
-  const repos = (authInfo?.workspace?.repos && authInfo.workspace.repos.length > 0)
-    ? authInfo.workspace.repos
+  const repos = (authInfo?.repos && authInfo.repos.length > 0)
+    ? authInfo.repos
     : [repoName];
 
   const activeDecisionsList = dbDecisions.length > 0 ? dbDecisions : decisionsList;

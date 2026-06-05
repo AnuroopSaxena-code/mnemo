@@ -113,7 +113,7 @@ export function PreMortemTab({
       const res = await fetch("/api/memory/retain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: proposal, source: sourceType, repoFullName: sourceDetail }),
+        body: JSON.stringify({ text: proposal, source: sourceType, repoFullName: activeRepo, sourceName: sourceDetail }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to retain");

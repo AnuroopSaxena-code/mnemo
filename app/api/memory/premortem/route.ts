@@ -49,34 +49,9 @@ export async function POST(req: NextRequest) {
 
     // 1. Recall similar memories from Hindsight
     const allMemories = await recall(workspace.hindsightBankId, text, 15)
-    const memories = repoFullName ? allMemories.filter((m: any) => m.metadata?.repoFullName === repoFullName).slice(0, 5) : allMemories.slice(0, 5);
+    const memories = repoFullName ? allMemories.filter((m: any) => m.metadata?.repo === repoFullName).slice(0, 5) : allMemories.slice(0, 5);
 
-    if (memories.length === 0) {
-      const extracted = await extractDecision(text, `${source ?? 'manual'} in ${sourceName ?? 'unknown'}`)
-      return NextResponse.json({
-        warningLevel: "low",
-        headline: "No relevant history found",
-        summary: "No relevant history found for this change. Storing for future reference.",
-        failureModes: [],
-        evidence: [],
-        operations: [
-          { label: "Recall before retain", state: "complete" as const, detail: "0 historical decisions fetched from index." },
-          { label: "Groq pre-mortem", state: "skipped" as const, detail: "Skipped. No relevant history found." }
-        ],
-        extraction: {
-          decision: extracted.split("\n")[0]?.replace(/^DECISION:\s*/i, '') || extracted,
-          rationale: "extracted",
-          alternatives: [],
-          caveats: [],
-          scope: "global",
-          people: [],
-          tags: [],
-          lifecycleHint: "proposed"
-        }
-      })
-    }
-
-    // 2. Run Groq pre-mortem
+    // 2. Run Groq pre-mortem ALWAYS
     const premortem = await generatePremortem(text, memories)
 
     // 3. Extract structured decision
@@ -125,7 +100,10 @@ export async function POST(req: NextRequest) {
 
     // 5. Build structured Pre-Mortem Result payload
     const paragraphs = premortem.split("\n\n").filter(Boolean)
-    const headline = paragraphs[0]?.replace(/^headline:\s*/i, '').slice(0, 100) || "Pre-Mortem Risk Assessment"
+    const rawHeadline = paragraphs[0]?.replace(/^headline:\s*/i, '').slice(0, 100) || "Pre-Mortem Risk Assessment"
+    const isGenericFallback = rawHeadline.toLowerCase().includes("generic") || memories.length === 0;
+    const headline = isGenericFallback ? "AI Generated Generic Risk Assessment" : rawHeadline;
+
     const summaryText = paragraphs[1] || premortem
     const hasConflict = memories.length > 0
     const warningLevel = hasConflict ? "critical" : "low"
@@ -133,13 +111,13 @@ export async function POST(req: NextRequest) {
     const failureModes = paragraphs.slice(2).map((p, idx) => ({
       risk: p.split("\n")[0]?.replace(/^risk:\s*/i, '').slice(0, 100) || `Risk Factor #${idx + 1}`,
       whyHistorySuggestsIt: p,
-      mitigation: "Review historical precedent and define guardrails before merging.",
-      citations: evidence.slice(0, 2).map((e: any) => e.record.id)
+      mitigation: isGenericFallback ? "Review AI-generated suggestions and define guardrails before merging." : "Review historical precedent and define guardrails before merging.",
+      citations: isGenericFallback ? [] : evidence.slice(0, 2).map((e: any) => e.record.id)
     }))
 
     const operations = [
       { label: "Recall before retain", state: "complete" as const, detail: `${memories.length} historical decisions fetched from index.` },
-      { label: "Groq pre-mortem", state: "complete" as const, detail: "Identified potential integration and scalability risks." }
+      { label: "Groq pre-mortem", state: "complete" as const, detail: isGenericFallback ? "Generated generic risks via AI (no history found)." : "Identified potential integration and scalability risks based on history." }
     ]
 
     return NextResponse.json({

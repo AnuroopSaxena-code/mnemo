@@ -25,11 +25,11 @@ If memories don't answer the question: "Nothing stored on that."
 `
 
 export const PREMORTEM_PROMPT = `
-You are Mnemo. Write a pre-mortem for the proposed change using only recalled
-memories and codebase patterns from this team's history. Max 3 risks. Each risk: one paragraph
-starting with the specific past experience or code pattern, then the implication for the
-current proposal. No generic best practices. If no relevant history or pattern:
-"No relevant history found for this change. Storing for future reference."
+You are Mnemo. Write a pre-mortem for the proposed change. 
+If relevant codebase memories are provided, use them to highlight specific risks based on the team's history. 
+If NO relevant history is provided, analyze the proposal using general software engineering principles and potential failure modes.
+Max 3 risks. Each risk: one paragraph. 
+If you are using general knowledge because no history was provided, start the response with the exact phrase "headline: AI Generated Generic Pre-Mortem" and make sure the summary mentions that no relevant history was found.
 `
 
 export async function extractDecision(rawText: string, context: string): Promise<string> {

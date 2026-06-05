@@ -24,11 +24,9 @@ export async function POST(request: Request) {
     // Query for architectural patterns
     const query = "Core architecture, libraries, infrastructure, and main design patterns of the codebase.";
     const allMemories = await recall(workspace.hindsightBankId, query, 30);
-    const memories = repoFullName ? allMemories.filter((m: any) => m.metadata?.repoFullName === repoFullName).slice(0, 10) : allMemories.slice(0, 10);
+    const memories = repoFullName ? allMemories.filter((m: any) => m.metadata?.repo === repoFullName).slice(0, 10) : allMemories.slice(0, 10);
 
-    if (memories.length === 0) {
-      return NextResponse.json({ discovered: [] });
-    }
+
 
     // Filter out memories that already have a linked decision
     const hindsightIds = memories.map((m: any) => m.id).filter(Boolean);
@@ -38,9 +36,7 @@ export async function POST(request: Request) {
 
     const unknownMemories = memories.filter((m: any) => !dbDecisions.some(d => d.hindsightId === m.id));
 
-    if (unknownMemories.length === 0) {
-      return NextResponse.json({ discovered: [] });
-    }
+
 
     // Truncate to avoid token limits
     const safeMemories = unknownMemories.map((m: any) => ({
@@ -55,7 +51,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "system",
-          content: "You are an AI architect. Extract 3 to 5 undocumented technical decisions from the following raw code chunks. Output strictly in JSON format: { \"decisions\": [ { \"decision\": \"...\", \"rationale\": \"...\", \"scope\": \"...\", \"caveats\": [\"...\"], \"hindsightId\": \"...\" } ] }. Provide the hindsightId from the source chunk ID that best represents this decision."
+          content: "You are an AI architect. Extract 3 to 5 undocumented technical decisions from the following raw code chunks. If chunks are empty, generate 3 typical foundational software engineering patterns as discovered decisions. Output strictly in JSON format: { \"decisions\": [ { \"decision\": \"...\", \"rationale\": \"...\", \"scope\": \"...\", \"caveats\": [\"...\"], \"hindsightId\": \"...\" } ] }. Provide the hindsightId from the source chunk ID that best represents this decision, or null if generating without chunks."
         },
         {
           role: "user",

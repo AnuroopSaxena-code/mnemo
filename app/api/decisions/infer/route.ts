@@ -24,11 +24,9 @@ export async function POST(request: Request) {
     const memories = await recall(workspace.hindsightBankId, query, 30);
     
     // Filter memories by the current repository
-    const repoMemories = memories.filter((m: any) => m.metadata?.repoFullName === repoFullName);
+    const repoMemories = memories.filter((m: any) => m.metadata?.repo === repoFullName);
 
-    if (repoMemories.length === 0) {
-      return NextResponse.json({ inferred: [] });
-    }
+
 
     const safeMemories = repoMemories.map((m: any) => ({
       id: m.id,
@@ -42,7 +40,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "system",
-          content: "You are an AI architect. Infer a historical timeline of 3-5 technical decisions based on these raw code snippets. Output strictly in JSON format: { \"decisions\": [ { \"title\": \"...\", \"decision\": \"...\", \"rationale\": \"...\", \"scope\": \"...\", \"source\": \"...\" } ] }. Provide a logical title, what was decided, rationale, scope, and use 'Inferred from codebase structure' as the source."
+          content: "You are an AI architect. Infer a historical timeline of 3-5 technical decisions based on these raw code snippets. If snippets are empty, generate 3 foundational Day-1 decisions for setting up a standard web project. Output strictly in JSON format: { \"decisions\": [ { \"title\": \"...\", \"decision\": \"...\", \"rationale\": \"...\", \"scope\": \"...\", \"source\": \"...\" } ] }. Provide a logical title, what was decided, rationale, scope, and use 'Inferred from codebase structure' (or 'AI Generated Generic Best Practice' if snippets are empty) as the source."
         },
         {
           role: "user",

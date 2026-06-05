@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
     const query = `What decisions should a new engineer know before working on ${body.service}?`;
     const memories = await recall(targetBankId, query, 30);
-    const repoMemories = body.repoFullName ? memories.filter((m: any) => m.metadata?.repoFullName === body.repoFullName) : memories;
+    const repoMemories = body.repoFullName ? memories.filter((m: any) => m.metadata?.repo === body.repoFullName) : memories;
 
     const hindsightIds = repoMemories.map((m: any) => m.id).filter(Boolean);
     const dbDecisions = await db.decision.findMany({
@@ -96,23 +96,22 @@ export async function POST(request: Request) {
     }
 
     let inferredDecisions: any[] = [];
-    if (unknownMemories.length > 0) {
-      try {
-        // Truncate memory content to avoid token limits
-        const safeMemories = unknownMemories.map(m => ({
-          id: m.id,
-          content: typeof m.content === 'string' ? m.content.slice(0, 1000) : m.content
-        }));
+    try {
+      // Truncate memory content to avoid token limits
+      const safeMemories = unknownMemories.map((m: any) => ({
+        id: m.id,
+        content: typeof m.content === 'string' ? m.content.slice(0, 1000) : m.content
+      }));
 
-        const completion = await groq.chat.completions.create({
-          model: MODEL,
-          temperature: 0.1,
-          response_format: { type: "json_object" },
-          messages: [
-            {
-              role: "system",
-              content: "You are an AI architect. Extract 1 to 3 critical architectural or technical decisions from the following raw code chunks. Output strictly in JSON format: { \"decisions\": [ { \"title\": \"...\", \"rationale\": \"...\" } ] }"
-            },
+      const completion = await groq.chat.completions.create({
+        model: MODEL,
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: "You are an AI architect. Extract 1 to 3 critical architectural or technical decisions from the following raw code chunks. If chunks are empty, generate 3 generic architectural best practices for onboarding. Output strictly in JSON format: { \"decisions\": [ { \"title\": \"...\", \"rationale\": \"...\" } ] }"
+          },
             {
               role: "user",
               content: `Code Snippets:\n${JSON.stringify(safeMemories)}`
@@ -120,21 +119,20 @@ export async function POST(request: Request) {
           ]
         });
 
-        if (completion.choices[0].message.content) {
-          const parsed = JSON.parse(completion.choices[0].message.content);
-          if (parsed.decisions && Array.isArray(parsed.decisions)) {
-            inferredDecisions = parsed.decisions.map((d: any) => ({
-              title: d.title,
-              whyItMatters: d.rationale,
-              health: { label: "Watch", score: 50 }, // Inferred health is provisional
-              source: "Inferred from Codebase",
-              inferred: true
-            }));
-          }
+      if (completion.choices[0].message.content) {
+        const parsed = JSON.parse(completion.choices[0].message.content);
+        if (parsed.decisions && Array.isArray(parsed.decisions)) {
+          inferredDecisions = parsed.decisions.map((d: any) => ({
+            title: d.title,
+            whyItMatters: d.rationale,
+            health: { label: "Watch", score: 50 }, // Inferred health is provisional
+            source: unknownMemories.length > 0 ? "Inferred from Codebase" : "AI Generated Generic Advice",
+            inferred: true
+          }));
         }
-      } catch (err) {
-        console.warn("Failed to generate inferred decisions:", err);
       }
+    } catch (err) {
+      console.warn("Failed to generate inferred decisions:", err);
     }
 
     const allDecisions = [...explicitDecisions, ...inferredDecisions].slice(0, 5);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
 import { isDecision, ingestDecision } from '@/lib/ingest'
+import { retain } from '@/lib/memory'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -16,6 +17,38 @@ export async function POST(req: NextRequest) {
 
     let ingested = 0
     
+    // Fetch repository README for codebase context (crucial for blank repos)
+    try {
+      const readmeRes = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/readme`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.user.githubToken}`,
+            Accept: 'application/vnd.github.v3.raw',
+            'User-Agent': 'mnemo-app',
+          },
+        }
+      )
+      
+      if (readmeRes.ok) {
+        const readmeContent = await readmeRes.text()
+        if (readmeContent && readmeContent.length > 50) {
+          const truncatedReadme = readmeContent.slice(0, 5000);
+          await retain(workspace.hindsightBankId, `Repository README for ${fullName}\n\n${truncatedReadme}`, {
+            source: 'github_readme',
+            sourceUrl: `https://github.com/${owner}/${repo}#readme`,
+            repo: fullName,
+            author: 'system',
+            timestamp: new Date().toISOString(),
+            context: 'core architecture and project description',
+          })
+          ingested++
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch README", e)
+    }
+
     // Fetch last 100 PR review comments
     try {
       const res = await fetch(

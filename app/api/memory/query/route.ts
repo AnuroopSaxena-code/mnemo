@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     if (!workspace) return NextResponse.json({ error: 'Workspace not found' }, { status: 404 })
 
     const allMemories = await recall(workspace.hindsightBankId, query, 15)
-    const memories = repoFullName ? allMemories.filter((m: any) => m.metadata?.repoFullName === repoFullName).slice(0, 5) : allMemories.slice(0, 5);
+    const memories = repoFullName ? allMemories.filter((m: any) => m.metadata?.repo === repoFullName).slice(0, 5) : allMemories.slice(0, 5);
     if (memories.length === 0) {
       return NextResponse.json({
         mode: "with-memory",
