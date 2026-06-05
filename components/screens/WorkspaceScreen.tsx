@@ -40,21 +40,22 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
   );
 
 
-  // 1. Fetch user workspace and connection status on mount
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const data = await res.json();
-          setAuthInfo(data);
-        }
-      } catch (err) {
-        console.warn("Auth info check failed:", err);
+  // 1. Fetch user workspace and connection status
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setAuthInfo(data);
       }
+    } catch (err) {
+      console.warn("Auth info check failed:", err);
     }
-    checkAuth();
   }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   // 2. Fetch database-retained decisions
   const fetchDbDecisions = useCallback(async () => {
@@ -250,8 +251,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
             onConnected={(name) => {
               setShowConnectModal(false);
               setActiveRepo(name);
-              fetchDbDecisions();
-              window.location.reload();
+              checkAuth();
             }}
             onClose={() => setShowConnectModal(false)}
           />
