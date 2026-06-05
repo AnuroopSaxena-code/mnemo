@@ -13,12 +13,10 @@ export async function POST() {
     return NextResponse.json({ error: "Seed route is disabled." }, { status: 403 });
   }
 
-  const results: Array<{ id: string; state: "local" | "hindsight" | "error"; detail: string }> = [];
-  for (const decision of seedDecisions) {
+  const promises = seedDecisions.map(async (decision) => {
     await retainLocalDecision(decision);
     if (!hasHindsightKey()) {
-      results.push({ id: decision.id, state: "local", detail: "No Hindsight key; seeded local memory only." });
-      continue;
+      return { id: decision.id, state: "local" as const, detail: "No Hindsight key; seeded local memory only." };
     }
     try {
       const client = getHindsightClient();
@@ -34,15 +32,17 @@ export async function POST() {
           tags: decision.tags.join(",")
         }
       });
-      results.push({ id: decision.id, state: "hindsight", detail: `Retained to ${HINDSIGHT_BANK_ID}.` });
+      return { id: decision.id, state: "hindsight" as const, detail: `Retained to ${HINDSIGHT_BANK_ID}.` };
     } catch (error) {
-      results.push({
+      return {
         id: decision.id,
-        state: "error",
+        state: "error" as const,
         detail: error instanceof Error ? error.message : "Unable to retain seed decision."
-      });
+      };
     }
-  }
+  });
+
+  const results = await Promise.all(promises);
 
   return NextResponse.json({ count: results.length, results });
 }

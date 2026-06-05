@@ -27,12 +27,14 @@ export async function POST(request: Request) {
     // 1. Fetch and retain closed, merged PR history
     try {
       const prs = await fetchPRHistory(owner, repo, String(installationId));
-      for (const pr of prs) {
-        const fullText = `PR #${pr.number}: ${pr.title}\n\nDescription:\n${pr.body}\n\nComments:\n${pr.comments.join("\n")}`;
-        const source = `${owner}/${repo} PR #${pr.number}: ${pr.title}`;
-        await retainDecision(fullText, "github", source);
-        prsSynced++;
-      }
+      await Promise.all(
+        prs.map(async (pr) => {
+          const fullText = `PR #${pr.number}: ${pr.title}\n\nDescription:\n${pr.body}\n\nComments:\n${pr.comments.join("\n")}`;
+          const source = `${owner}/${repo} PR #${pr.number}: ${pr.title}`;
+          await retainDecision(fullText, "github", source);
+        })
+      );
+      prsSynced = prs.length;
     } catch (err) {
       console.warn("Failed fetching PR history during sync:", err);
     }
@@ -40,11 +42,13 @@ export async function POST(request: Request) {
     // 2. Fetch and retain ADR Markdown documents
     try {
       const adrs = await fetchADRFiles(owner, repo, String(installationId));
-      for (const adr of adrs) {
-        const source = `${owner}/${repo} ADR: ${adr.path}`;
-        await retainDecision(adr.content, "adr", source);
-        adrsSynced++;
-      }
+      await Promise.all(
+        adrs.map(async (adr) => {
+          const source = `${owner}/${repo} ADR: ${adr.path}`;
+          await retainDecision(adr.content, "adr", source);
+        })
+      );
+      adrsSynced = adrs.length;
     } catch (err) {
       console.warn("Failed fetching ADR files during sync:", err);
     }
