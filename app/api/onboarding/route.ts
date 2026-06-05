@@ -74,20 +74,20 @@ export async function POST(request: Request) {
       where: { hindsightId: { in: hindsightIds } }
     });
 
-    const decisions = memories.map((m: any) => {
+    const decisions = memories.flatMap((m: any) => {
       const dbDec = dbDecisions.find((d: any) => d.hindsightId === m.id);
-      if (!dbDec) return null;
+      if (!dbDec) return [];
       const record = mapDbDecisionToRecord(dbDec);
 
       const health = scoreDecisionHealth(record as any);
 
-      return {
+      return [{
         title: record.title,
         whyItMatters: record.rationale || record.decision,
         health,
         source: record.source
-      };
-    }).filter(Boolean);
+      }];
+    });
 
     let summary = `Before touching ${body.service}, review these decisions because they encode the team's scars, reversals, and caveats.`;
     if (decisions.length > 0) {

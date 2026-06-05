@@ -39,11 +39,6 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
     typeof window !== "undefined" ? window.innerWidth < 768 : false
   );
 
-  // Loaded proposal state passed to PreMortemTab when selected from Inbox
-  const [loadedProposal, setLoadedProposal] = useState<string | undefined>(undefined);
-  const [loadedSourceType, setLoadedSourceType] = useState<SourceType | undefined>(undefined);
-  const [loadedSourceDetail, setLoadedSourceDetail] = useState<string | undefined>(undefined);
-  const [premortemKey, setPremortemKey] = useState(0);
 
   // 1. Fetch user workspace and connection status on mount
   useEffect(() => {
@@ -89,13 +84,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
     fetchDbDecisions();
   }, [fetchDbDecisions]);
 
-  const handleLoadProposal = useCallback((text: string, sourceType: SourceType, sourceDetail: string) => {
-    setLoadedProposal(text);
-    setLoadedSourceType(sourceType);
-    setLoadedSourceDetail(sourceDetail);
-    setPremortemKey((prev) => prev + 1);
-    setActiveTab("premortem");
-  }, []);
+
 
   return (
     <>
@@ -144,16 +133,16 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
           <AnimatePresence mode="wait">
             {activeTab === "premortem" && (
               <motion.div
-                key={`premortem-${premortemKey}`}
+                key="premortem"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
                 <PreMortemTab
-                  initialProposal={loadedProposal}
-                  initialSourceType={loadedSourceType}
-                  initialSourceDetail={loadedSourceDetail}
+                  initialProposal={undefined}
+                  initialSourceType={undefined}
+                  initialSourceDetail={undefined}
                   onDecisionClick={setDetailDecision}
                   onAddDecision={handleAddDecision}
                   showcaseMode={false}
@@ -216,7 +205,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <SourcesTab onLoadProposal={handleLoadProposal} />
+                <SourcesTab />
               </motion.div>
             )}
           </AnimatePresence>
