@@ -1,0 +1,490 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,400;1,400&family=Lora:ital@1&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — Mnemo cinematic theme
+   All colors via CSS variables for easy theme switching.
+   8px grid system via spacing utilities.
+───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces — layered depth */
+  --color-bg: #080808;
+  --color-surface-1: #0E0E0E;
+  --color-surface-2: #0A0A0A;
+  --color-surface-3: #141414;
+  --color-surface-raised: #181818;
+
+  /* Text */
+  --color-ink: #F0EDE6;
+  --color-ink-dim: #999999;
+  --color-ink-muted: #555555;
+  --color-ink-ghost: #333333;
+
+  /* Borders */
+  --color-border: #1A1A1A;
+  --color-border-hover: #2A2A2A;
+
+  /* Accent — amber / oxidised gold — the heartbeat */
+  --color-accent: #C9A84C;
+  --color-accent-dim: rgba(201, 168, 76, 0.08);
+  --color-accent-glow: rgba(201, 168, 76, 0.25);
+  --color-accent-subtle: rgba(201, 168, 76, 0.04);
+
+  /* Semantic — used ONLY for pipeline complete dot */
+  --color-green: #4ADE80;
+  --color-green-dim: rgba(74, 222, 128, 0.15);
+
+  /* Warning / Error — pipeline states only */
+  --color-warn: #d29922;
+  --color-error: #f85149;
+
+  /* Fonts */
+  --font-display: "DM Serif Display", serif;
+  --font-heading: "Playfair Display", serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --font-body: "Lora", serif;
+
+  /* Motion */
+  --dur-fast: 150ms;
+  --dur-base: 300ms;
+  --dur-slow: 450ms;
+  --dur-cinematic: 600ms;
+  --dur-entrance: 900ms;
+  --ease-cinematic: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Border radius cap */
+  --radius: 4px;
+  --radius-sm: 2px;
+}
+
+/* ─── Reduced motion ────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--color-bg);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Form elements ─────────────────────────────────────── */
+button, input, textarea, select {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-accent-dim);
+  color: var(--color-ink);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: var(--radius-sm); }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+
+/* ─── Typography classes ────────────────────────────────── */
+.font-display { font-family: var(--font-display); }
+.font-heading { font-family: var(--font-heading); }
+.font-mono { font-family: var(--font-mono); }
+.font-body { font-family: var(--font-body); }
+
+/* ─── Noise grain overlay ───────────────────────────────── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.02;
+  filter: url(#noise);
+  background: repeat;
+}
+
+@keyframes noise-drift {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(-2%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+
+.noise-animate {
+  animation: noise-drift 8s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────────────────
+   LANDING PAGE — Gradient mesh, ticker, line draw
+───────────────────────────────────────────────────────── */
+
+/* Drifting amber gradient mesh nodes */
+@keyframes mesh-drift-1 {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(30px, -20px); }
+  50%  { transform: translate(-15px, 40px); }
+  75%  { transform: translate(40px, 10px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes mesh-drift-2 {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-40px, 15px); }
+  50%  { transform: translate(20px, -35px); }
+  75%  { transform: translate(-10px, 25px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes mesh-drift-3 {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(15px, 30px); }
+  50%  { transform: translate(-30px, -10px); }
+  75%  { transform: translate(25px, -40px); }
+  100% { transform: translate(0, 0); }
+}
+
+.mesh-node {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+}
+
+.mesh-node-1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--color-accent-subtle), transparent 70%);
+  top: 15%;
+  left: 20%;
+  animation: mesh-drift-1 60s ease-in-out infinite;
+}
+
+.mesh-node-2 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, var(--color-accent-subtle), transparent 70%);
+  top: 55%;
+  right: 20%;
+  animation: mesh-drift-2 60s ease-in-out infinite;
+}
+
+.mesh-node-3 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, var(--color-accent-subtle), transparent 70%);
+  bottom: 20%;
+  left: 45%;
+  animation: mesh-drift-3 60s ease-in-out infinite;
+}
+
+/* Scrolling decision ticker */
+@keyframes ticker-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.ticker-column {
+  animation: ticker-scroll 30s linear infinite;
+}
+
+.ticker-column-reverse {
+  animation: ticker-scroll 35s linear infinite reverse;
+}
+
+/* Amber line draw animation */
+@keyframes line-draw {
+  from { width: 0; }
+  to { width: 280px; }
+}
+
+.amber-line-draw {
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-accent), rgba(201, 168, 76, 0.2));
+  animation: line-draw 600ms var(--ease-out) both;
+}
+
+/* ─── Cinematic transitions ─────────────────────────────── */
+@keyframes cinematic-zoom-in {
+  from { opacity: 0; transform: scale(0.96); filter: blur(4px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes cinematic-zoom-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.08); }
+}
+
+@keyframes cinematic-slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.anim-zoom-in {
+  animation: cinematic-zoom-in var(--dur-slow) var(--ease-cinematic) both;
+}
+
+.anim-slide-up {
+  animation: cinematic-slide-up 350ms var(--ease-out) both;
+}
+
+.anim-fade-in {
+  animation: fade-in var(--dur-base) var(--ease-cinematic) both;
+}
+
+.anim-fade-in-up {
+  animation: fade-in-up 800ms var(--ease-out) both;
+}
+
+/* ─── Amber sweep loader ────────────────────────────────── */
+@keyframes amber-sweep {
+  0% { width: 0; left: 0; }
+  50% { width: 100%; left: 0; }
+  100% { width: 0; left: 100%; }
+}
+
+.amber-loader {
+  position: relative;
+  overflow: hidden;
+}
+
+.amber-loader::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--color-accent);
+  animation: amber-sweep 1.2s ease-in-out infinite;
+}
+
+/* ─── Cursor blink ──────────────────────────────────────── */
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.blink-cursor::after {
+  content: "_";
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* ─── Amber pulse dot (sidebar heartbeat) ───────────────── */
+@keyframes amber-breathe {
+  0%   { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0.4; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.amber-pulse-dot {
+  animation: amber-breathe 2.4s ease-in-out infinite;
+}
+
+/* ─── Déjà vu pulse ─────────────────────────────────────── */
+@keyframes deja-vu-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.deja-vu-pulse {
+  animation: deja-vu-pulse 600ms ease-in-out 1;
+}
+
+/* ─── Pipeline trail badge animation ────────────────────── */
+@keyframes pipeline-activate {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+.pipeline-badge {
+  opacity: 0.4;
+  transition: opacity var(--dur-base) var(--ease-cinematic),
+              border-color var(--dur-base) var(--ease-cinematic);
+}
+
+.pipeline-badge-active {
+  opacity: 1;
+  animation: pipeline-activate var(--dur-base) var(--ease-cinematic) both;
+}
+
+/* ─── Micro-interactions ────────────────────────────────── */
+.btn-press:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease;
+}
+
+.card-hover {
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.card-hover:hover {
+  background-color: var(--color-surface-raised);
+  border-color: var(--color-border-hover);
+}
+
+/* Sidebar card hover — amber left border slide */
+.sidebar-card-hover {
+  position: relative;
+  transition: background-color var(--dur-fast) ease;
+}
+
+.sidebar-card-hover::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 0;
+  background: var(--color-accent);
+  transition: height var(--dur-fast) ease, top var(--dur-fast) ease;
+}
+
+.sidebar-card-hover:hover::before {
+  height: 100%;
+  top: 0;
+}
+
+.sidebar-card-hover:hover {
+  background-color: var(--color-surface-3);
+}
+
+/* ─── Input styles ──────────────────────────────────────── */
+.input-minimal {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  transition: border-color var(--dur-fast) ease;
+}
+
+.input-minimal:focus {
+  outline: none;
+  border-bottom-color: var(--color-accent);
+}
+
+.input-minimal::placeholder {
+  color: var(--color-ink-muted);
+}
+
+/* Box input (for modal) */
+.input-box {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-hover);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  transition: border-color var(--dur-fast) ease;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+
+.input-box:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.input-box::placeholder {
+  color: var(--color-ink-muted);
+}
+
+/* ─── CTA button — amber outlined ───────────────────────── */
+.cta-outlined {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-accent);
+  background: transparent;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 12px 32px;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease;
+  letter-spacing: 0.05em;
+  border-radius: 0;
+}
+
+.cta-outlined:hover {
+  background: var(--color-accent-dim);
+}
+
+/* ─── CTA button — amber flat (primary action) ──────────── */
+.cta-amber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 12px 24px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 0;
+  transition: opacity var(--dur-fast) ease;
+}
+
+.cta-amber:hover {
+  opacity: 0.9;
+}
+
+.cta-amber:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Collapsed panel tab ───────────────────────────────── */
+.panel-tab {
+  width: 2px;
+  background: var(--color-accent);
+  cursor: pointer;
+  transition: width var(--dur-fast) ease;
+  min-height: 100%;
+}
+
+.panel-tab:hover {
+  width: 4px;
+}
