@@ -17,6 +17,7 @@ export async function readCache<T>(key: string): Promise<T | null> {
 }
 
 export async function writeCache<T>(key: string, value: T) {
+  if (process.env.VERCEL) return; // Skip cache files write on Vercel
   await ensureCacheDir();
   await fs.writeFile(path.join(cacheDir, `${key}.json`), JSON.stringify(value, null, 2));
 }

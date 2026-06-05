@@ -23,6 +23,7 @@ export async function readLocalDecisions(): Promise<DecisionRecord[]> {
 }
 
 export async function retainLocalDecision(decision: DecisionRecord) {
+  if (process.env.VERCEL) return; // Skip filesystem writes on Vercel
   await ensureDataDir();
   const current = (await readLocalDecisions()).filter((item) => !seedDecisions.some((seed) => seed.id === item.id));
   const next = [decision, ...current.filter((item) => item.id !== decision.id)];
