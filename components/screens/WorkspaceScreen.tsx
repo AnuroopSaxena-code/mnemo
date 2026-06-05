@@ -91,7 +91,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
     <>
       <div
         className="flex"
-        style={{ minHeight: "100vh", background: "var(--color-bg)" }}
+        style={{ minHeight: "100vh" }}
       >
         {/* Desktop Sidebar */}
         {!isMobile && (
@@ -134,7 +134,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
           <AnimatePresence mode="wait">
             {activeTab === "premortem" && (
               <motion.div
-                key="premortem"
+                key={`premortem-${activeRepo}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -154,7 +154,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
 
             {activeTab === "ask" && (
               <motion.div
-                key="ask"
+                key={`ask-${activeRepo}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -171,7 +171,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
 
             {activeTab === "timeline" && (
               <motion.div
-                key="timeline"
+                key={`timeline-${activeRepo}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -187,7 +187,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
 
             {activeTab === "onboarding" && (
               <motion.div
-                key="onboarding"
+                key={`onboarding-${activeRepo}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -204,7 +204,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
 
             {activeTab === "sources" && (
               <motion.div
-                key="sources"
+                key={`sources-${activeRepo}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
