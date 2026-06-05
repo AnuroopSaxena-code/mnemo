@@ -1,268 +1,184 @@
 "use client";
 
-import type { SourceType } from "@/lib/types";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
-interface IngestionItem {
-  id: string;
-  sourceType: SourceType;
-  sourceDetail: string;
-  author: string;
-  time: string;
-  content: string;
-  riskProfile: string;
+interface ParsedDecision {
+  decision: string;
+  rationale: string;
+  alternatives: { name: string; rejectedBecause: string }[];
+  caveats: string[];
+  scope: string;
 }
 
-interface SourcesTabProps {
-  onLoadProposal: (
-    text: string,
-    sourceType: SourceType,
-    sourceDetail: string
-  ) => void;
-}
+export function SourcesTab() {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [text, setText] = useState("");
+  const [sourceType, setSourceType] = useState("manual");
+  const [sourceName, setSourceName] = useState("");
+  
+  const [loading, setLoading] = useState(false);
+  const [extractedText, setExtractedText] = useState("");
+  const [parsed, setParsed] = useState<ParsedDecision | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-const INGESTION_FEED: IngestionItem[] = [
-  {
-    id: "ing-1",
-    sourceType: "github",
-    sourceDetail: "PR #1142 billing-orders",
-    author: "Jon Bell",
-    time: "4 minutes ago",
-    content:
-      "In PR #1142 I think we should move billing event processing back to Kafka so we can get stronger ordering guarantees and replay failed invoice events. SQS FIFO feels too limiting for upcoming enterprise billing exports.",
-    riskProfile:
-      "CRITICAL: Repeated Reversal (Kafka was previously reversed back to SQS due to duplicate billing incidents)",
-  },
-  {
-    id: "ing-2",
-    sourceType: "discord",
-    sourceDetail: "Discord #auth-channel",
-    author: "Elena Ruiz",
-    time: "2 hours ago",
-    content:
-      "@here We should switch dashboard logins back to long-lived JWTs to bypass Redis session lookups, which are causing latency overheads during load spikes.",
-    riskProfile:
-      "HIGH WARNING: Re-opening JWT Sessions (JWTs were replaced by sessions to support immediate revocation auditing)",
-  },
-  {
-    id: "ing-3",
-    sourceType: "whatsapp",
-    sourceDetail: "WhatsApp #dev-updates",
-    author: "Noah Kim",
-    time: "1 day ago",
-    content:
-      "I want to build a quick internal feature flag service using environment variables rather than paying for a vendor license again.",
-    riskProfile:
-      "HIGH WARNING: Rebuilding feature flags (an internal service was previously abandoned in favor of vendor controls)",
-  },
-  {
-    id: "ing-4",
-    sourceType: "github",
-    sourceDetail: "PR #1092 ci-config",
-    author: "Jon Bell",
-    time: "2 days ago",
-    content:
-      "Let's parallelize all tests in GitHub Actions including database migrations to speed up our deploy pipeline.",
-    riskProfile:
-      "MEDIUM WARNING: Flaky parallel CI de-synchronization risk",
-  },
-  {
-    id: "ing-5",
-    sourceType: "discord",
-    sourceDetail: "Discord #sdk-alerts",
-    author: "Ari Chen",
-    time: "3 days ago",
-    content:
-      "I will make the response fields optional in this minor SDK release so we don't have to bump the major version.",
-    riskProfile:
-      "MEDIUM WARNING: Breaking change policy override risk",
-  },
-];
+  async function handleExtract() {
+    if (!text.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/memory/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, source: sourceType, repoFullName: sourceName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Extraction failed");
+      setExtractedText(data.extractedText);
+      setParsed(data.parsed);
+      setStep(2);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to extract");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-export function SourcesTab({ onLoadProposal }: SourcesTabProps) {
+  async function handleStore() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/memory/retain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          text, 
+          extractedText, 
+          source: sourceType, 
+          repoFullName: sourceName 
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Storage failed");
+      setSuccessMsg("Decision successfully stored to Hindsight memory and Database.");
+      // Reset form
+      setTimeout(() => {
+        setStep(1);
+        setText("");
+        setSourceName("");
+        setSuccessMsg(null);
+        setParsed(null);
+      }, 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to store");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div
-      style={{
-        padding: "32px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "24px",
-        minHeight: "100vh",
-        maxWidth: "800px",
-      }}
-    >
-      {/* Header */}
-      <header
-        style={{
-          borderBottom: "1px solid var(--color-border)",
-          paddingBottom: "16px",
-        }}
-      >
-        <h2
-          className="font-heading"
-          style={{
-            fontSize: "18px",
-            color: "var(--color-ink)",
-            fontWeight: 400,
-            margin: "0 0 4px",
-          }}
-        >
-          Source Ingestion Feed
+    <div style={{ padding: "32px", display: "flex", flexDirection: "column", gap: "24px", minHeight: "100vh", maxWidth: "800px" }}>
+      <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "16px" }}>
+        <h2 className="font-heading" style={{ fontSize: "18px", color: "var(--color-ink)", fontWeight: 400, margin: "0 0 4px" }}>
+          Source Inbox
         </h2>
-        <p
-          className="font-mono"
-          style={{
-            fontSize: "11px",
-            color: "var(--color-ink-muted)",
-            margin: 0,
-          }}
-        >
-          Live inbox of GitHub webhooks, Discord threads, and WhatsApp updates.
+        <p className="font-mono" style={{ fontSize: "11px", color: "var(--color-ink-muted)", margin: 0 }}>
+          Manually ingest engineering decisions into memory.
         </p>
       </header>
 
-      {/* Ingestion Feed */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-        }}
-      >
-        {INGESTION_FEED.map((item) => {
-          const isCritical = item.riskProfile.includes("CRITICAL");
+      {error && (
+        <div style={{ padding: "12px", background: "var(--color-surface-1)", borderLeft: "2px solid var(--color-error)", color: "var(--color-error)", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
+          {error}
+        </div>
+      )}
 
-          return (
-            <div
-              key={item.id}
-              style={{
-                background: "var(--color-surface-1)",
-                borderLeft: `2px solid ${isCritical ? "var(--color-error)" : "var(--color-warn)"}`,
-                borderRadius: "var(--radius)",
-                padding: "16px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
-              {/* Top metadata */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
-                  <span
-                    className="font-mono"
-                    style={{
-                      fontSize: "9px",
-                      color: "var(--color-accent)",
-                      textTransform: "uppercase",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {item.sourceType}
-                  </span>
-                  <span
-                    className="font-mono"
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--color-ink)",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {item.sourceDetail}
-                  </span>
-                </div>
-                <span
-                  className="font-mono"
-                  style={{
-                    fontSize: "10px",
-                    color: "var(--color-ink-muted)",
-                  }}
-                >
-                  {item.time}
-                </span>
+      {successMsg && (
+        <div style={{ padding: "12px", background: "var(--color-surface-1)", borderLeft: "2px solid var(--color-green)", color: "var(--color-green)", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
+          {successMsg}
+        </div>
+      )}
+
+      <AnimatePresence mode="wait">
+        {step === 1 ? (
+          <motion.div key="step1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <div style={{ flex: 1 }}>
+                <label className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", display: "block", marginBottom: "4px", textTransform: "uppercase" }}>Source System</label>
+                <select value={sourceType} onChange={e => setSourceType(e.target.value)} style={{ width: "100%", background: "var(--color-surface-2)", border: "1px solid var(--color-border)", color: "var(--color-ink)", fontFamily: "var(--font-mono)", fontSize: "12px", padding: "8px", borderRadius: "var(--radius)" }}>
+                  <option value="github">GitHub PR</option>
+                  <option value="slack">Slack Channel</option>
+                  <option value="discord">Discord Thread</option>
+                  <option value="adr">ADR Document</option>
+                  <option value="manual">Manual Entry</option>
+                </select>
               </div>
-
-              {/* Author and content */}
-              <div>
-                <span
-                  className="font-mono"
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--color-accent)",
-                    marginRight: "8px",
-                  }}
-                >
-                  @{item.author.replace(" ", "").toLowerCase()}:
-                </span>
-                <p
-                  className="font-body"
-                  style={{
-                    fontSize: "13px",
-                    fontStyle: "italic",
-                    color: "var(--color-ink-dim)",
-                    margin: "4px 0 0",
-                    lineHeight: "1.5",
-                  }}
-                >
-                  &quot;{item.content}&quot;
-                </p>
-              </div>
-
-              {/* Risk Preview and action */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "10px",
-                  borderTop: "1px dashed var(--color-border)",
-                  paddingTop: "10px",
-                }}
-              >
-                <span
-                  className="font-mono"
-                  style={{
-                    fontSize: "9px",
-                    color: isCritical
-                      ? "var(--color-error)"
-                      : "var(--color-warn)",
-                  }}
-                >
-                  {item.riskProfile}
-                </span>
-
-                <button
-                  onClick={() =>
-                    onLoadProposal(
-                      item.content,
-                      item.sourceType,
-                      item.sourceDetail
-                    )
-                  }
-                  className="cta-outlined btn-press"
-                  style={{
-                    fontSize: "11px",
-                    padding: "6px 12px",
-                  }}
-                >
-                  load into pre-mortem \u2197
-                </button>
+              <div style={{ flex: 1 }}>
+                <label className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", display: "block", marginBottom: "4px", textTransform: "uppercase" }}>Source Name</label>
+                <input type="text" value={sourceName} onChange={e => setSourceName(e.target.value)} placeholder="e.g. PR #123, ADR-001" style={{ width: "100%", background: "var(--color-surface-2)", border: "1px solid var(--color-border)", color: "var(--color-ink)", fontFamily: "var(--font-mono)", fontSize: "12px", padding: "8px", borderRadius: "var(--radius)" }} />
               </div>
             </div>
-          );
-        })}
-      </div>
+            
+            <div>
+              <label className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", display: "block", marginBottom: "4px", textTransform: "uppercase" }}>Raw Content</label>
+              <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Paste the discussion, PR description, or architecture notes here..." style={{ width: "100%", height: "200px", background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", color: "var(--color-ink)", fontFamily: "var(--font-mono)", fontSize: "13px", padding: "12px", resize: "none" }} />
+            </div>
+
+            <button onClick={handleExtract} disabled={loading || !text.trim()} className="cta-amber btn-press" style={{ alignSelf: "flex-start", padding: "10px 20px" }}>
+              {loading ? "Extracting..." : "Extract Decision"}
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div key="step2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div style={{ padding: "16px", background: "var(--color-surface-1)", border: "1px solid var(--color-border)", borderRadius: "var(--radius)" }}>
+              <h3 className="font-mono" style={{ fontSize: "11px", color: "var(--color-accent)", margin: "0 0 12px", textTransform: "uppercase" }}>Review Extraction</h3>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div>
+                  <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Decision</span>
+                  <p className="font-body" style={{ margin: "4px 0 0", fontSize: "14px", color: "var(--color-ink)" }}>{parsed?.decision || "None"}</p>
+                </div>
+                <div>
+                  <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Rationale</span>
+                  <p className="font-body" style={{ margin: "4px 0 0", fontSize: "14px", color: "var(--color-ink)" }}>{parsed?.rationale || "None"}</p>
+                </div>
+                <div>
+                  <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Scope</span>
+                  <p className="font-body" style={{ margin: "4px 0 0", fontSize: "14px", color: "var(--color-ink)" }}>{parsed?.scope || "global"}</p>
+                </div>
+                {parsed && parsed.caveats.length > 0 && (
+                  <div>
+                    <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Caveats</span>
+                    <ul style={{ margin: "4px 0 0", paddingLeft: "16px", fontSize: "14px", color: "var(--color-ink)" }}>
+                      {parsed.caveats.map((c, i) => <li key={i}>{c}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {parsed && parsed.alternatives.length > 0 && (
+                  <div>
+                    <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>Alternatives Rejected</span>
+                    <ul style={{ margin: "4px 0 0", paddingLeft: "16px", fontSize: "14px", color: "var(--color-ink)" }}>
+                      {parsed.alternatives.map((a, i) => (
+                        <li key={i}><strong>{a.name}</strong>: {a.rejectedBecause}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button onClick={() => setStep(1)} disabled={loading} className="cta-outlined btn-press" style={{ padding: "10px 20px" }}>
+                Back to Edit
+              </button>
+              <button onClick={handleStore} disabled={loading} className="cta-amber btn-press" style={{ padding: "10px 20px" }}>
+                {loading ? "Storing..." : "Store Decision"}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

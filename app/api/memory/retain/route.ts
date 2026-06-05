@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { text, source, sourceUrl, repoFullName, author } = await req.json()
+    const { text, extractedText, source, sourceUrl, repoFullName, author } = await req.json()
 
     const workspace = await db.workspace.findUnique({ where: { id: session.workspaceId } })
     if (!workspace) return NextResponse.json({ error: 'Workspace not found' }, { status: 404 })
@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       bankId: workspace.hindsightBankId,
       workspaceId: workspace.id,
       rawText: text,
+      extractedText: extractedText ?? undefined,
       source: source ?? 'manual',
       sourceUrl: sourceUrl ?? '',
       repoFullName: repoFullName ?? '',

@@ -13,21 +13,6 @@ export async function GET() {
       take: 100,
     })
 
-    if (decisions.length === 0) {
-      const workspace = await db.workspace.findUnique({ where: { id: session.workspaceId } })
-      if (workspace) {
-        const repos = await db.repo.findMany({ where: { workspaceId: session.workspaceId } })
-        const repoName = repos[0]?.fullName || `${session.user.githubLogin}/mnemo`
-        const { seedWorkspace } = await import('@/lib/seed')
-        await seedWorkspace(session.workspaceId, workspace.hindsightBankId, repoName)
-        decisions = await db.decision.findMany({
-          where: { workspaceId: session.workspaceId },
-          orderBy: { createdAt: 'desc' },
-          take: 100,
-        })
-      }
-    }
-
     const formatted = decisions.map((d: any) => ({
       id: d.id,
       title: d.summary.length > 60 ? d.summary.slice(0, 60) + '...' : d.summary,

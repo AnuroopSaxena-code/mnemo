@@ -76,25 +76,8 @@ export async function POST(request: Request) {
 
     const decisions = memories.map((m: any) => {
       const dbDec = dbDecisions.find((d: any) => d.hindsightId === m.id);
-      const record = dbDec ? mapDbDecisionToRecord(dbDec) : {
-        id: m.id,
-        title: m.content.slice(0, 60),
-        decision: m.content,
-        rationale: "not stated",
-        alternatives: [],
-        caveats: [],
-        scope: "global",
-        people: [m.metadata?.author || "unknown"],
-        date: m.metadata?.timestamp ? new Date(m.metadata.timestamp).toLocaleDateString() : "recent",
-        state: "standing" as const,
-        sourceType: "manual" as const,
-        source: "manual",
-        tags: [],
-        reinforcementCount: 0,
-        authorStatus: "active" as const,
-        lifecycle: [],
-        content: m.content
-      };
+      if (!dbDec) return null;
+      const record = mapDbDecisionToRecord(dbDec);
 
       const health = scoreDecisionHealth(record as any);
 
@@ -104,7 +87,7 @@ export async function POST(request: Request) {
         health,
         source: record.source
       };
-    });
+    }).filter(Boolean);
 
     let summary = `Before touching ${body.service}, review these decisions because they encode the team's scars, reversals, and caveats.`;
     if (decisions.length > 0) {

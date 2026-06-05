@@ -50,6 +50,31 @@ export async function POST(req: NextRequest) {
     // 1. Recall similar memories from Hindsight
     const memories = await recall(workspace.hindsightBankId, text, 5)
 
+    if (memories.length === 0) {
+      const extracted = await extractDecision(text, `${source ?? 'manual'} in ${sourceName ?? 'unknown'}`)
+      return NextResponse.json({
+        warningLevel: "low",
+        headline: "No relevant history found",
+        summary: "No relevant history found for this change. Storing for future reference.",
+        failureModes: [],
+        evidence: [],
+        operations: [
+          { label: "Recall before retain", state: "complete" as const, detail: "0 historical decisions fetched from index." },
+          { label: "Groq pre-mortem", state: "skipped" as const, detail: "Skipped. No relevant history found." }
+        ],
+        extraction: {
+          decision: extracted.split("\n")[0]?.replace(/^DECISION:\s*/i, '') || extracted,
+          rationale: "extracted",
+          alternatives: [],
+          caveats: [],
+          scope: "global",
+          people: [],
+          tags: [],
+          lifecycleHint: "proposed"
+        }
+      })
+    }
+
     // 2. Run Groq pre-mortem
     const premortem = await generatePremortem(text, memories)
 
@@ -62,33 +87,15 @@ export async function POST(req: NextRequest) {
       where: { hindsightId: { in: hindsightIds } }
     })
 
-    const evidence = memories.map((m: any, idx: number) => {
+    const evidence = memories.map((m: any) => {
       const dbDec = dbDecisions.find((d: any) => d.hindsightId === m.id)
-      const record = dbDec ? mapDbDecisionToRecord(dbDec) : {
-        id: m.id,
-        title: m.content.slice(0, 60),
-        decision: m.content,
-        rationale: "not stated",
-        alternatives: [],
-        caveats: [],
-        scope: "global",
-        people: [m.metadata?.author || "unknown"],
-        date: m.metadata?.timestamp ? new Date(m.metadata.timestamp).toLocaleDateString() : "recent",
-        state: "standing",
-        sourceType: "manual" as const,
-        source: "manual",
-        tags: [],
-        reinforcementCount: 0,
-        authorStatus: "active" as const,
-        lifecycle: [],
-        content: m.content
-      }
+      if (!dbDec) return null
       return {
         id: m.id,
         text: m.content,
-        record
+        record: mapDbDecisionToRecord(dbDec)
       }
-    })
+    }).filter(Boolean)
 
     // 5. Build structured Pre-Mortem Result payload
     const paragraphs = premortem.split("\n\n").filter(Boolean)
@@ -113,14 +120,7 @@ export async function POST(req: NextRequest) {
       warningLevel,
       headline,
       summary: summaryText,
-      failureModes: failureModes.length > 0 ? failureModes : [
-        {
-          risk: "General System Drift",
-          whyHistorySuggestsIt: premortem,
-          mitigation: "Ensure compliance with existing architectural guidelines.",
-          citations: []
-        }
-      ],
+      failureModes,
       evidence,
       operations,
       extraction: {

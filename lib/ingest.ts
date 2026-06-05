@@ -1,6 +1,6 @@
 import { db } from './db'
 import { retain, recall } from './memory'
-import { extractDecision } from './groq'
+import { extractDecision, parseExtraction } from './groq'
 import { nanoid } from 'nanoid'
 
 const DECISION_SIGNALS = [
@@ -19,6 +19,7 @@ export async function ingestDecision({
   bankId,
   workspaceId,
   rawText,
+  extractedText,
   source,
   sourceUrl,
   repoFullName,
@@ -29,6 +30,7 @@ export async function ingestDecision({
   bankId: string
   workspaceId: string
   rawText: string
+  extractedText?: string
   source: string
   sourceUrl: string
   repoFullName: string
@@ -38,7 +40,8 @@ export async function ingestDecision({
 }) {
   // 1. Extract structured decision
   const context = `${source} in ${repoFullName}${prTitle ? ` — PR: ${prTitle}` : ''}`
-  const extracted = await extractDecision(rawText, context)
+  const extracted = extractedText || await extractDecision(rawText, context)
+  const parsed = parseExtraction(extracted)
 
   // 2. Check for déjà vu
   const similar = await recall(bankId, rawText, 3)
@@ -66,8 +69,11 @@ ${extracted}`
       id: nanoid(),
       workspaceId,
       hindsightId: (hindsightResult as { id?: string })?.id ?? '',
-      summary: extracted.split('\n')[0].replace(/^DECISION:\s*/i, '').slice(0, 200),
-      rationale: '',
+      summary: parsed.decision.slice(0, 200),
+      rationale: parsed.rationale,
+      alternatives: JSON.stringify(parsed.alternatives),
+      caveats: parsed.caveats.join(','),
+      scope: parsed.scope,
       source,
       sourceUrl,
       repoFullName,

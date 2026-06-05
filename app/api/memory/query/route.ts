@@ -48,6 +48,14 @@ export async function POST(req: NextRequest) {
     if (!workspace) return NextResponse.json({ error: 'Workspace not found' }, { status: 404 })
 
     const memories = await recall(workspace.hindsightBankId, query, 5)
+    if (memories.length === 0) {
+      return NextResponse.json({
+        mode: "with-memory",
+        answer: "Nothing stored on that. Either it predates the integration or nobody wrote it down.",
+        evidence: []
+      })
+    }
+
     const answer = await synthesiseAnswer(query, memories)
 
     // Resolve vector citations to database records
@@ -58,31 +66,13 @@ export async function POST(req: NextRequest) {
 
     const evidence = memories.map((m: any) => {
       const dbDec = dbDecisions.find((d: any) => d.hindsightId === m.id)
-      const record = dbDec ? mapDbDecisionToRecord(dbDec) : {
-        id: m.id,
-        title: m.content.slice(0, 60),
-        decision: m.content,
-        rationale: "not stated",
-        alternatives: [],
-        caveats: [],
-        scope: "global",
-        people: [m.metadata?.author || "unknown"],
-        date: m.metadata?.timestamp ? new Date(m.metadata.timestamp).toLocaleDateString() : "recent",
-        state: "standing",
-        sourceType: "manual" as const,
-        source: "manual",
-        tags: [],
-        reinforcementCount: 0,
-        authorStatus: "active" as const,
-        lifecycle: [],
-        content: m.content
-      }
+      if (!dbDec) return null
       return {
         id: m.id,
         text: m.content,
-        record
+        record: mapDbDecisionToRecord(dbDec)
       }
-    })
+    }).filter(Boolean)
 
     return NextResponse.json({
       mode: "with-memory",

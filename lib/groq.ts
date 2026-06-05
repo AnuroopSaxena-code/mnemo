@@ -70,3 +70,75 @@ export async function generatePremortem(proposal: string, memories: unknown[]): 
   })
   return res.choices[0].message.content ?? 'No pre-mortem generated.'
 }
+
+export interface ParsedDecision {
+  decision: string;
+  rationale: string;
+  alternatives: { name: string; rejectedBecause: string }[];
+  caveats: string[];
+  scope: string;
+}
+
+export function parseExtraction(rawText: string): ParsedDecision {
+  const lines = rawText.split('\n');
+  const result: ParsedDecision = {
+    decision: '',
+    rationale: '',
+    alternatives: [],
+    caveats: [],
+    scope: 'global'
+  };
+
+  let currentSection = '';
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (trimmed.match(/^(1\.\s*)?DECISION:/i)) {
+      currentSection = 'DECISION';
+      result.decision = trimmed.replace(/^(1\.\s*)?DECISION:\s*/i, '');
+    } else if (trimmed.match(/^(2\.\s*)?RATIONALE:/i)) {
+      currentSection = 'RATIONALE';
+      const ratStr = trimmed.replace(/^(2\.\s*)?RATIONALE:\s*/i, '');
+      result.rationale = ratStr.toLowerCase() === 'not stated' || ratStr.toLowerCase() === 'not stated.' ? '' : ratStr;
+    } else if (trimmed.match(/^(3\.\s*)?ALTERNATIVES REJECTED:/i)) {
+      currentSection = 'ALTERNATIVES';
+      const altStr = trimmed.replace(/^(3\.\s*)?ALTERNATIVES REJECTED:\s*/i, '');
+      if (altStr && altStr.toLowerCase() !== 'none' && altStr.toLowerCase() !== 'not stated') {
+        const parts = altStr.split('—');
+        if (parts.length >= 2) {
+          result.alternatives.push({ name: parts[0].trim(), rejectedBecause: parts.slice(1).join('—').trim() });
+        }
+      }
+    } else if (trimmed.match(/^(4\.\s*)?CAVEATS:/i)) {
+      currentSection = 'CAVEATS';
+      const cavStr = trimmed.replace(/^(4\.\s*)?CAVEATS:\s*/i, '');
+      if (cavStr && cavStr.toLowerCase() !== 'none' && cavStr.toLowerCase() !== 'not stated' && cavStr.toLowerCase() !== 'not stated.') {
+        result.caveats.push(cavStr);
+      }
+    } else if (trimmed.match(/^(5\.\s*)?SCOPE:/i)) {
+      currentSection = 'SCOPE';
+      const scopeStr = trimmed.replace(/^(5\.\s*)?SCOPE:\s*/i, '');
+      result.scope = scopeStr.toLowerCase() === 'not stated' || scopeStr.toLowerCase() === 'not stated.' ? 'global' : scopeStr;
+    } else {
+      if (currentSection === 'DECISION') result.decision += ' ' + trimmed;
+      if (currentSection === 'RATIONALE') result.rationale += ' ' + trimmed;
+      if (currentSection === 'ALTERNATIVES') {
+        const parts = trimmed.split('—');
+        if (parts.length >= 2) {
+          result.alternatives.push({ name: parts[0].trim(), rejectedBecause: parts.slice(1).join('—').trim() });
+        }
+      }
+      if (currentSection === 'CAVEATS') result.caveats.push(trimmed);
+      if (currentSection === 'SCOPE') result.scope += ' ' + trimmed;
+    }
+  }
+
+  if (!result.decision && rawText) {
+    result.decision = rawText.split('\n')[0];
+  }
+
+  return result;
+}
+
