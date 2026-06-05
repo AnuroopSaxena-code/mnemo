@@ -7,31 +7,69 @@ interface ConnectRepoModalProps {
   onConnected: (repoName: string) => void;
 }
 
-const demoRepos = [
-  { name: "payments-service", lastCommit: "2 days ago", hasDecisions: true },
-  { name: "user-auth-gateway", lastCommit: "5 days ago", hasDecisions: true },
-  { name: "billing-events", lastCommit: "1 week ago", hasDecisions: false },
-  { name: "dashboard-frontend", lastCommit: "3 weeks ago", hasDecisions: false },
-  { name: "data-pipeline", lastCommit: "1 month ago", hasDecisions: false },
-];
+import { useEffect } from "react";
 
 export function ConnectRepoModal({ onConnected }: ConnectRepoModalProps) {
   const [repoUrl, setRepoUrl] = useState("");
   const [showBrowse, setShowBrowse] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanningRepo, setScanningRepo] = useState("");
+  const [repos, setRepos] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRepos() {
+      try {
+        const res = await fetch("/api/repos/available");
+        if (res.ok) {
+          const data = await res.json();
+          setRepos(data.repos || []);
+        }
+      } catch (err) {
+        console.error("Failed to load available repos:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRepos();
+  }, []);
 
   function handleConnect() {
-    const name = repoUrl.includes("/")
+    const searchName = repoUrl.includes("/")
       ? repoUrl.split("/").pop() || repoUrl
-      : repoUrl || "payments-service";
-    startScan(name);
+      : repoUrl;
+
+    const found = repos.find(r => r.name.toLowerCase().includes(searchName.toLowerCase()));
+    if (found) {
+      startScan(found.id, found.name);
+    } else if (repos.length > 0) {
+      startScan(repos[0].id, repos[0].name);
+    } else {
+      alert("No repository selected. Please choose a repository from your GitHub profile.");
+    }
   }
 
-  function startScan(name: string) {
+  async function startScan(repoId: string, name: string) {
     setScanningRepo(name);
     setScanning(true);
-    setTimeout(() => onConnected(name), 2200);
+
+    try {
+      const res = await fetch("/api/repos/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoIds: [repoId] })
+      });
+      if (res.ok) {
+        setTimeout(() => onConnected(name), 1800);
+      } else {
+        alert("Failed to connect repository in workspace.");
+        setScanning(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed connecting repository.");
+      setScanning(false);
+    }
   }
 
   return (
@@ -157,49 +195,51 @@ export function ConnectRepoModal({ onConnected }: ConnectRepoModalProps) {
                       borderTop: "1px solid var(--color-border)",
                     }}
                   >
-                    {demoRepos.map((repo) => (
-                      <li key={repo.name}>
-                        <button
-                          className="btn-press"
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            width: "100%",
-                            padding: "12px 0",
-                            background: "transparent",
-                            border: "none",
-                            borderBottom: "1px solid var(--color-border)",
-                            cursor: "pointer",
-                            color: "var(--color-ink)",
-                          }}
-                          onClick={() => startScan(repo.name)}
-                        >
-                          <span className="flex items-center" style={{ gap: 8 }}>
-                            <span
-                              style={{
-                                width: 5,
-                                height: 5,
-                                borderRadius: "50%",
-                                background: repo.hasDecisions
-                                  ? "var(--color-green)"
-                                  : "var(--color-ink-muted)",
-                              }}
-                              aria-hidden="true"
-                            />
-                            <span className="font-mono" style={{ fontSize: 13 }}>
-                              {repo.name}
-                            </span>
-                          </span>
-                          <span
-                            className="font-mono"
-                            style={{ fontSize: 11, color: "var(--color-ink-muted)" }}
-                          >
-                            {repo.lastCommit}
-                          </span>
-                        </button>
+                    {loading ? (
+                      <li style={{ padding: "12px 0", textAlign: "center", color: "var(--color-ink-muted)" }} className="font-mono text-xs">
+                        loading repositories...
                       </li>
-                    ))}
+                    ) : repos.length === 0 ? (
+                      <li style={{ padding: "12px 0", textAlign: "center", color: "var(--color-ink-muted)" }} className="font-mono text-xs">
+                        no repositories found
+                      </li>
+                    ) : (
+                      repos.map((repo) => (
+                        <li key={repo.id}>
+                          <button
+                            className="btn-press"
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              width: "100%",
+                              padding: "12px 0",
+                              background: "transparent",
+                              border: "none",
+                              borderBottom: "1px solid var(--color-border)",
+                              cursor: "pointer",
+                              color: "var(--color-ink)",
+                            }}
+                            onClick={() => startScan(repo.id, repo.name)}
+                          >
+                            <span className="flex items-center" style={{ gap: 8 }}>
+                              <span
+                                style={{
+                                  width: 5,
+                                  height: 5,
+                                  borderRadius: "50%",
+                                  background: "var(--color-green)",
+                                }}
+                                aria-hidden="true"
+                              />
+                              <span className="font-mono" style={{ fontSize: 13 }}>
+                                {repo.name}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      ))
+                    )}
                   </motion.ul>
                 )}
               </AnimatePresence>

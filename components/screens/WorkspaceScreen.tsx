@@ -52,6 +52,9 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
         if (res.ok) {
           const data = await res.json();
           setAuthInfo(data);
+          if (data.authenticated) {
+            setShowcaseMode(false);
+          }
         }
       } catch (err) {
         console.warn("Auth info check failed:", err);

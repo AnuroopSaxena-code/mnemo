@@ -199,7 +199,7 @@ export function LandingScreen({ onConnect }: LandingScreenProps) {
             className="cta-outlined btn-press"
             onClick={onConnect}
           >
-            connect a repository →
+            login with github →
           </button>
         </motion.div>
       </div>
