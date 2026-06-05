@@ -26,12 +26,12 @@ export const GROQ_MODEL_EXTRACT = "llama-3.1-8b-instant";
  * Best reasoning — used for pre-mortem synthesis where depth matters.
  * Qwen-2.5-32B is fast and supports JSON mode / tool calling.
  */
-export const GROQ_MODEL_SYNTHESIS = "qwen-2.5-32b";
+export const GROQ_MODEL_SYNTHESIS = "llama-3.3-70b-versatile";
 
 /**
  * Balanced quality for memory-backed Q&A answers.
  */
-export const GROQ_MODEL_CHAT = "qwen-2.5-32b";
+export const GROQ_MODEL_CHAT = "llama-3.3-70b-versatile";
 
 /**
  * Legacy alias — kept so any future callers have a safe default.
