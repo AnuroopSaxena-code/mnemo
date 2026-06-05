@@ -1,17 +1,22 @@
 const required = [
-  'DATABASE_URL', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET',
+  'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET',
   'GITHUB_REDIRECT_URI', 'GITHUB_APP_ID',
   'GITHUB_WEBHOOK_SECRET', 'HINDSIGHT_API_KEY', 'GROQ_API_KEY',
   'SESSION_SECRET', 'NEXT_PUBLIC_APP_URL'
 ]
 
 // Allow bypass only during next build or when local environment lacks a DB string
-const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build' || !process.env.DATABASE_URL;
+const hasDatabaseUrl = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.PRISMA_DATABASE_URL);
+const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build' || !hasDatabaseUrl;
 
 for (const key of required) {
   if (!process.env[key] && !isNextBuild) {
     throw new Error(`Missing required environment variable: ${key}`)
   }
+}
+
+if (!hasDatabaseUrl && !isNextBuild) {
+  throw new Error("Missing required environment variable: DATABASE_URL, POSTGRES_URL, or PRISMA_DATABASE_URL")
 }
 
 const privateKeyRaw = process.env.GITHUB_APP_PRIVATE_KEY || process.env.GITHUB_PRIVATE_KEY || (isNextBuild ? 'bW9jay1rZXk=' : '');
@@ -34,7 +39,7 @@ const getDecodedPrivateKey = (raw: string) => {
 }
 
 export const env = {
-  databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mnemo',
+  databaseUrl: process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.PRISMA_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mnemo',
   github: {
     clientId: process.env.GITHUB_CLIENT_ID || 'mock_client_id',
     clientSecret: process.env.GITHUB_CLIENT_SECRET || 'mock_client_secret',
