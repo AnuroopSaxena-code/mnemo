@@ -30,8 +30,8 @@ export function CursorGlow() {
     >
       <motion.div
         animate={{
-          x: mousePosition.x - 400,
-          y: mousePosition.y - 400,
+          x: mousePosition.x - 200,
+          y: mousePosition.y - 200,
         }}
         transition={{
           type: "tween",
@@ -40,8 +40,8 @@ export function CursorGlow() {
         }}
         style={{
           position: "absolute",
-          width: "800px",
-          height: "800px",
+          width: "400px",
+          height: "400px",
           background: "radial-gradient(circle, rgba(201, 168, 76, 0.05) 0%, rgba(201, 168, 76, 0) 70%)",
           borderRadius: "50%",
         }}

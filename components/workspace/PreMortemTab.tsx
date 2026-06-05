@@ -29,7 +29,7 @@ export function PreMortemTab({
     initialSourceType || "github"
   );
   const [sourceDetail, setSourceDetail] = useState(
-    initialSourceDetail || "PR #1142 billing-orders"
+    initialSourceDetail || ""
   );
 
   const [loading, setLoading] = useState(false);
@@ -273,6 +273,7 @@ export function PreMortemTab({
                 type="text"
                 value={sourceDetail}
                 onChange={(e) => setSourceDetail(e.target.value)}
+                placeholder="e.g. PR #1142 billing-orders"
                 style={{
                   width: "100%",
                   background: "var(--color-surface-2)",
