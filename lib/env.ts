@@ -44,7 +44,7 @@ const getDecodedPrivateKey = (raw: string) => {
 }
 
 export const env = {
-  databaseUrl: process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.PRISMA_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mnemo',
+  databaseUrl: process.env.PRISMA_DATABASE_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL || 'postgresql://postgres:postgres@localhost:5432/mnemo',
   github: {
     clientId: process.env.GITHUB_CLIENT_ID || 'mock_client_id',
     clientSecret: process.env.GITHUB_CLIENT_SECRET || 'mock_client_secret',
