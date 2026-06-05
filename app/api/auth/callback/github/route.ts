@@ -85,8 +85,9 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.redirect(new URL('/', env.appUrl))
     res.headers.set('Set-Cookie', setSessionCookie(sessionToken))
     return res
-  } catch (err) {
+  } catch (err: any) {
     console.error('GitHub callback execution failed:', err)
-    return NextResponse.redirect(new URL('/?error=callback_error', env.appUrl))
+    const msg = err?.message || String(err)
+    return NextResponse.redirect(new URL(`/?error=callback_error&message=${encodeURIComponent(msg)}`, env.appUrl))
   }
 }

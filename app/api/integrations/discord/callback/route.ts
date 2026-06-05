@@ -45,8 +45,9 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.redirect(new URL('/?connected=discord', env.appUrl))
-  } catch (err) {
+  } catch (err: any) {
     console.error('Discord callback failed:', err)
-    return NextResponse.redirect(new URL('/?error=discord_callback_error', env.appUrl))
+    const msg = err?.message || String(err)
+    return NextResponse.redirect(new URL(`/?error=discord_callback_error&message=${encodeURIComponent(msg)}`, env.appUrl))
   }
 }
