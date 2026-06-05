@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { DecisionRecord, PremortemResult, SourceType, OperationBadge } from "@/lib/types";
-import { demoProposal } from "@/lib/seed-decisions";
+
 
 interface PreMortemTabProps {
   onDecisionClick: (decision: DecisionRecord) => void;
@@ -22,7 +22,7 @@ export function PreMortemTab({
   initialSourceDetail,
   showcaseMode,
 }: PreMortemTabProps) {
-  const [proposal, setProposal] = useState(initialProposal || demoProposal);
+  const [proposal, setProposal] = useState(initialProposal || "");
   const [sourceType, setSourceType] = useState<SourceType>(
     initialSourceType || "github"
   );
