@@ -3,11 +3,11 @@ import { CursorGlow } from "@/components/ui/CursorGlow";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mnemo — Your Codebase Has Been Trying to Warn You",
+  title: "mnemo - Your Codebase Has Been Trying to Warn You",
   description:
     "Institutional memory for engineering teams. Mnemo remembers every decision, reversal, and caveat so you don't repeat what already failed.",
   openGraph: {
-    title: "Mnemo — Institutional Memory for Engineering Teams",
+    title: "mnemo - Institutional Memory for Engineering Teams",
     description: "Your codebase has been trying to warn you.",
     type: "website"
   }

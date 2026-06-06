@@ -19,7 +19,7 @@ interface WorkspaceScreenProps {
   decisions: DecisionRecord[];
 }
 
-const suggestedQueries = [
+const defaultSuggestedQueries = [
   "why is the user_events table denormalized?",
   "why did we move off Kafka?",
   "why is auth handled at the gateway?"
@@ -82,6 +82,12 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
     : [repoName];
 
   const activeDecisionsList = dbDecisions.length > 0 ? dbDecisions : decisionsList;
+
+  const dynamicQueries = activeDecisionsList
+    .slice(0, 3)
+    .map((d) => `explain the decision: ${d.title.toLowerCase()}`);
+  
+  const currentQueries = dynamicQueries.length > 0 ? dynamicQueries : defaultSuggestedQueries;
 
   const handleAddDecision = useCallback((newDec: DecisionRecord) => {
     fetchDbDecisions();
@@ -180,7 +186,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
               >
                 <AskMemoryTab
                   onDecisionClick={setDetailDecision}
-                  suggestedQueries={suggestedQueries}
+                  suggestedQueries={currentQueries}
                   showcaseMode={false}
                   activeRepo={activeRepo}
                 />

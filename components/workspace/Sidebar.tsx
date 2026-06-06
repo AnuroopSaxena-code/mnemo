@@ -39,10 +39,13 @@ export function Sidebar({
   authInfo,
   onAddRepoClick,
 }: SidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   return (
-    <aside
+    <motion.aside
+      animate={{ width: isCollapsed ? 68 : 240 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
       style={{
-        width: 240,
         minHeight: "100vh",
         borderRight: "1px solid var(--color-border)",
         display: "flex",
@@ -50,11 +53,21 @@ export function Sidebar({
         padding: "24px 0",
         flexShrink: 0,
         background: "var(--color-surface-1)",
+        overflow: "hidden",
       }}
     >
       {/* Wordmark — click to go to overview */}
       <header
-        style={{ padding: "0 24px", marginTop: 16, marginBottom: 40 }}
+        style={{
+          padding: isCollapsed ? "0" : "0 24px",
+          marginTop: 16,
+          marginBottom: 40,
+          display: "flex",
+          flexDirection: isCollapsed ? "column" : "row",
+          alignItems: "center",
+          justifyContent: isCollapsed ? "center" : "space-between",
+          gap: isCollapsed ? 16 : 0,
+        }}
       >
         <button
           className="btn-press font-display"
@@ -63,7 +76,7 @@ export function Sidebar({
             background: "none",
             border: "none",
             padding: 0,
-            fontSize: 20,
+            fontSize: isCollapsed ? 28 : 20,
             color: "var(--color-accent)",
             fontWeight: 400,
             letterSpacing: "0.12em",
@@ -71,25 +84,52 @@ export function Sidebar({
           }}
           aria-label="Go to workspace overview"
         >
-          mnemo
+          {isCollapsed ? "m" : "mnemo"}
+        </button>
+
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="btn-press"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--color-ink-muted)",
+            cursor: "pointer",
+            padding: 4,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {isCollapsed ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          )}
         </button>
       </header>
 
       {/* Tab navigation */}
       <nav style={{ marginBottom: 32 }} aria-label="Agent features">
-        <p
+        <motion.p
           className="font-mono"
+          animate={{
+            height: isCollapsed ? 0 : "auto",
+            opacity: isCollapsed ? 0 : 1,
+            margin: isCollapsed ? 0 : "0 0 12px",
+          }}
           style={{
             fontSize: 9,
             color: "var(--color-ink-muted)",
             textTransform: "uppercase",
             letterSpacing: "0.15em",
             padding: "0 24px",
-            margin: "0 0 12px",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
           }}
         >
           memory modules
-        </p>
+        </motion.p>
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {TABS.map((tab) => {
             const isActive = tab.id === activeTab;
@@ -101,38 +141,31 @@ export function Sidebar({
                   style={{
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: isCollapsed ? "center" : "flex-start",
                     width: "100%",
-                    padding: "10px 24px",
-                    background: isActive
-                      ? "var(--color-accent-dim)"
-                      : "transparent",
+                    padding: isCollapsed ? "12px 0" : "10px 24px",
+                    background: isActive ? "var(--color-accent-dim)" : "transparent",
                     border: "none",
-                    borderLeft: isActive
-                      ? "2px solid var(--color-accent)"
-                      : "2px solid transparent",
+                    borderLeft: isActive ? "2px solid var(--color-accent)" : "2px solid transparent",
                     cursor: "pointer",
                     fontFamily: "var(--font-mono)",
                     fontSize: 12,
-                    color: isActive
-                      ? "var(--color-accent)"
-                      : "var(--color-ink-muted)",
-                    textAlign: "left",
-                    transition:
-                      "color 150ms ease, border-color 150ms ease, background-color 150ms ease",
+                    color: isActive ? "var(--color-accent)" : "var(--color-ink-muted)",
+                    transition: "all 150ms ease",
+                    whiteSpace: "nowrap",
                   }}
+                  title={isCollapsed ? tab.label : undefined}
                 >
                   <span
                     style={{
-                      color: isActive
-                        ? "var(--color-accent)"
-                        : "var(--color-ink-ghost)",
-                      marginRight: 8,
-                      fontSize: 10,
+                      color: isActive ? "var(--color-accent)" : "var(--color-ink-ghost)",
+                      marginRight: isCollapsed ? 0 : 8,
+                      fontSize: isCollapsed ? 12 : 10,
                     }}
                   >
                     {tab.index}
                   </span>
-                  {tab.label}
+                  {!isCollapsed && tab.label}
                 </button>
               </li>
             );
@@ -142,19 +175,25 @@ export function Sidebar({
 
       {/* Repos scope selector */}
       <nav style={{ flex: 1 }} aria-label="Connected repositories">
-        <p
+        <motion.p
           className="font-mono"
+          animate={{
+            height: isCollapsed ? 0 : "auto",
+            opacity: isCollapsed ? 0 : 1,
+            margin: isCollapsed ? 0 : "0 0 12px",
+          }}
           style={{
             fontSize: 9,
             color: "var(--color-ink-muted)",
             textTransform: "uppercase",
             letterSpacing: "0.15em",
             padding: "0 24px",
-            margin: "0 0 12px",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
           }}
         >
           connected repos
-        </p>
+        </motion.p>
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {repos.map((repo) => {
             const repoNameString = typeof repo === "string" ? repo : repo.fullName;
@@ -167,42 +206,38 @@ export function Sidebar({
                   style={{
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: isCollapsed ? "center" : "flex-start",
                     width: "100%",
-                    padding: "8px 24px",
+                    padding: isCollapsed ? "12px 0" : "8px 24px",
                     background: "transparent",
                     border: "none",
-                    borderLeft: isActive
-                      ? "2px solid var(--color-accent)"
-                      : "2px solid transparent",
+                    borderLeft: isActive ? "2px solid var(--color-accent)" : "2px solid transparent",
                     cursor: "pointer",
                     fontFamily: "var(--font-mono)",
                     fontSize: 12,
-                    color: isActive
-                      ? "var(--color-ink)"
-                      : "var(--color-ink-muted)",
-                    textAlign: "left",
-                    transition: "color 150ms ease, border-color 150ms ease",
+                    color: isActive ? "var(--color-ink)" : "var(--color-ink-muted)",
+                    transition: "all 150ms ease",
+                    whiteSpace: "nowrap",
                   }}
+                  title={isCollapsed ? repoNameString : undefined}
                 >
                   <span
                     style={{
                       width: 5,
                       height: 5,
                       borderRadius: "50%",
-                      background: isActive
-                        ? "var(--color-green)"
-                        : "var(--color-ink-muted)",
-                      marginRight: 10,
+                      background: isActive ? "var(--color-green)" : "var(--color-ink-muted)",
+                      marginRight: isCollapsed ? 0 : 10,
                       flexShrink: 0,
                     }}
                   />
-                  {repoNameString}
+                  {!isCollapsed && repoNameString}
                 </button>
               </li>
             );
           })}
           {onAddRepoClick && (
-            <li style={{ marginTop: 8, padding: "0 24px" }}>
+            <li style={{ marginTop: 8, padding: isCollapsed ? "0 12px" : "0 24px" }}>
               <button
                 onClick={onAddRepoClick}
                 className="font-mono btn-press"
@@ -210,16 +245,17 @@ export function Sidebar({
                   background: "transparent",
                   border: "1px dashed var(--color-border)",
                   borderRadius: "var(--radius)",
-                  padding: "6px 12px",
+                  padding: isCollapsed ? "8px 0" : "6px 12px",
                   width: "100%",
                   color: "var(--color-ink-muted)",
-                  fontSize: "11px",
+                  fontSize: isCollapsed ? "14px" : "11px",
                   cursor: "pointer",
                   textAlign: "center",
                   transition: "all 150ms ease",
                 }}
+                title={isCollapsed ? "Manage Repos" : undefined}
               >
-                + CONNECT REPO
+                {isCollapsed ? "+" : "+ MANAGE REPOS"}
               </button>
             </li>
           )}
@@ -229,14 +265,15 @@ export function Sidebar({
       {/* Footer with decision count + Logout */}
       <footer
         style={{
-          padding: "0 24px",
+          padding: isCollapsed ? "0" : "0 24px",
           display: "flex",
+          flexDirection: isCollapsed ? "column" : "row",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
+          justifyContent: isCollapsed ? "center" : "space-between",
+          gap: isCollapsed ? 16 : 8,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: isCollapsed ? "none" : "flex", alignItems: "center", gap: 8 }}>
           <span
             style={{
               width: 4,
@@ -248,7 +285,7 @@ export function Sidebar({
           />
           <p
             className="font-mono"
-            style={{ fontSize: 11, color: "var(--color-ink-muted)", margin: 0 }}
+            style={{ fontSize: 11, color: "var(--color-ink-muted)", margin: 0, whiteSpace: "nowrap" }}
           >
             {decisionCount} decisions retained
           </p>
@@ -257,22 +294,24 @@ export function Sidebar({
           onClick={handleLogout}
           className="font-mono btn-press"
           style={{
-            fontSize: 9,
+            fontSize: isCollapsed ? 12 : 9,
             color: "var(--color-ink-ghost)",
             background: "transparent",
             border: "1px solid var(--color-border)",
             borderRadius: 3,
-            padding: "3px 8px",
+            padding: isCollapsed ? "6px" : "3px 8px",
             cursor: "pointer",
             textTransform: "uppercase",
             letterSpacing: "0.08em",
-            transition: "color 150ms ease, border-color 150ms ease",
+            transition: "all 150ms ease",
+            width: isCollapsed ? "40px" : "auto",
           }}
+          title={isCollapsed ? "Logout" : undefined}
         >
-          Logout
+          {isCollapsed ? "⎋" : "Logout"}
         </button>
       </footer>
-    </aside>
+    </motion.aside>
   );
 }
 
@@ -450,7 +489,7 @@ export function MobileSidebar({
                     cursor: "pointer",
                   }}
                 >
-                  + CONNECT REPO
+                  + MANAGE REPOS
                 </button>
               </li>
             )}
