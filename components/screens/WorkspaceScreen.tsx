@@ -246,7 +246,7 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <ConnectSocialsTab />
+                <ConnectSocialsTab authInfo={authInfo} onRefreshAuth={checkAuth} />
               </motion.div>
             )}
           </AnimatePresence>

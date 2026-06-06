@@ -1,6 +1,17 @@
 import { db } from './db'
 import { cookies } from 'next/headers'
 import crypto from 'crypto'
+import { NextRequest } from 'next/server'
+
+export async function resolveBotOrSession(req: NextRequest) {
+  const authHeader = req.headers.get('Authorization')
+  if (authHeader && authHeader.startsWith('Bot ') && authHeader.substring(4) === process.env.DISCORD_BOT_TOKEN) {
+    return { isBot: true, userId: 'bot', workspaceId: 'bot', user: null }
+  }
+  const session = await getSession()
+  if (!session) return null
+  return { isBot: false, userId: session.userId, workspaceId: session.workspaceId, user: session.user }
+}
 
 const COOKIE_NAME = 'mnemo_session'
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000 // 30 days

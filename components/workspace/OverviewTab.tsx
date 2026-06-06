@@ -50,11 +50,19 @@ const QUICK_ACTIONS = [
     icon: "◌",
   },
   {
+    id: "sources",
+    index: "05",
+    title: "Source Inbox",
+    description:
+      "Ingest new decisions from commit logs, pull requests, or architecture docs. Parse and commit them to Mnemo's memory.",
+    icon: "⧉",
+  },
+  {
     id: "socials",
     index: "06",
     title: "Connect Socials",
     description:
-      "Bring Mnemo into Discord and Slack. Query memory, run pre-mortems, and receive stale decision alerts directly in your team\u0027s chat.",
+      "Bring Mnemo into Discord and Slack. Query memory, run pre-mortems, and receive stale decision alerts directly in your team's chat.",
     icon: "◈",
   },
 ];

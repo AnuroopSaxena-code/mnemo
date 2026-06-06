@@ -1,8 +1,6 @@
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js'
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPostgresAdapter } from '@prisma/adapter-ppg'
-import { HindsightClient } from '@vectorize-io/hindsight-client'
-import Groq from 'groq-sdk'
 import 'dotenv/config'
 
 const connectionString = process.env.DATABASE_URL
@@ -13,63 +11,289 @@ if (!connectionString) {
 const adapter = new PrismaPostgresAdapter({ connectionString })
 const db = new PrismaClient({ adapter })
 
-const hindsight = new HindsightClient({ 
-  apiKey: process.env.HINDSIGHT_API_KEY!,
-  baseUrl: process.env.HINDSIGHT_BASE_URL || 'https://api.hindsight.vectorize.io'
-})
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+const botToken = process.env.DISCORD_BOT_TOKEN!
 
-async function resolveWorkspace(guildId: string) {
-  const inst = await db.botInstallation.findUnique({
-    where: { platform_platformId: { platform: 'discord', platformId: guildId } },
+// Common headers for bot request to Next.js API
+const apiHeaders = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bot ${botToken}`
+}
+
+async function resolveWorkspaceAndUser(discordUserId: string, guildId: string | null) {
+  const user = await db.user.findFirst({
+    where: { discordId: discordUserId },
     include: { workspace: true }
   })
-  return inst ? { bankId: inst.workspace.hindsightBankId } : null
+  if (!user) return null
+
+  // Check if bot is installed in this guild for this workspace
+  if (guildId) {
+    const inst = await db.botInstallation.findFirst({
+      where: { platform: 'discord', platformId: guildId, workspaceId: user.workspaceId }
+    })
+    if (!inst) return null
+  }
+
+  return user
 }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return
-  if (interaction.commandName !== 'lore') return
+  // 1. Handle Autocomplete for /set-repo
+  if (interaction.isAutocomplete()) {
+    if (interaction.commandName === 'set-repo') {
+      try {
+        const user = await db.user.findFirst({
+          where: { discordId: interaction.user.id }
+        })
+        if (!user) {
+          return interaction.respond([])
+        }
 
-  await interaction.deferReply()
+        const repos = await db.repo.findMany({
+          where: { workspaceId: user.workspaceId }
+        })
 
-  const guildId = interaction.guildId
-  if (!guildId) return interaction.editReply('Must be used in a server.')
+        const focusedValue = interaction.options.getFocused()
+        const choices = repos.map(r => ({ name: r.fullName, value: r.fullName }))
 
-  try {
-    const ws = await resolveWorkspace(guildId)
-    if (!ws) {
-      return interaction.editReply(
-        "This server isn't connected to Mnemo. Visit " +
-        (process.env.NEXT_PUBLIC_APP_URL || "https://mnemo.dev") + " to connect."
-      )
+        const filtered = choices.filter(choice => 
+          choice.name.toLowerCase().includes(focusedValue.toLowerCase())
+        ).slice(0, 25)
+
+        return interaction.respond(filtered)
+      } catch (err) {
+        console.error('Error handling autocomplete:', err)
+        return interaction.respond([])
+      }
     }
+  }
 
-    const query = interaction.options.getString('question', true)
-    const recallRes = await hindsight.recall(ws.bankId, query)
-    const memories = recallRes.results || []
+  // 2. Handle Slash Commands
+  if (interaction.isChatInputCommand()) {
+    const guildId = interaction.guildId
+    const commandName = interaction.commandName
 
-    if (!memories || memories.length === 0) {
-      return interaction.editReply("Nothing stored on that. Either it predates the integration or nobody wrote it down.")
+    if (
+      commandName !== 'mnemo' && 
+      commandName !== 'premortem' && 
+      commandName !== 'onboarding' &&
+      commandName !== 'set-repo'
+    ) return
+
+    await interaction.deferReply()
+
+    try {
+      const user = await resolveWorkspaceAndUser(interaction.user.id, guildId)
+      if (!user) {
+        return interaction.editReply(
+          "Your Discord account is not linked to a Mnemo workspace, or this server is not connected to your workspace.\n" +
+          "Visit the 'Connect Socials' tab on the website to link your account."
+        )
+      }
+
+      // ─── Command: /set-repo (Set Active Repository) ───
+      if (commandName === 'set-repo') {
+        const repo = interaction.options.getString('repo', true)
+
+        const repoExists = await db.repo.findFirst({
+          where: { fullName: repo, workspaceId: user.workspaceId }
+        })
+
+        if (!repoExists) {
+          return interaction.editReply(
+            `The repository **${repo}** is not linked to your Mnemo workspace.\n` +
+            `If you do not see your repository here, link it on the website first: ${appUrl}`
+          )
+        }
+
+        await db.user.update({
+          where: { id: user.id },
+          data: { activeRepo: repo }
+        })
+
+        return interaction.editReply({
+          embeds: [{
+            title: "Active Repository Set",
+            description: `Active repository set to **${repo}**!\nYour future commands (\`/mnemo\`, \`/premortem\`) will query this codebase context.`,
+            color: 0x10B981,
+            footer: { text: `Mnemo Settings • ${appUrl}` }
+          }]
+        })
+      }
+
+      // Require active repo for /mnemo, /premortem, and /onboarding
+      if (!user.activeRepo) {
+        return interaction.editReply(
+          "You haven't set an active repository yet! Please run `/set-repo` to choose a connected repository.\n" +
+          `If you do not see your repository there, link it on the website first: ${appUrl}`
+        )
+      }
+
+      // ─── Command: /mnemo (Query Memory) ───
+      if (commandName === 'mnemo') {
+        const query = interaction.options.getString('question', true)
+
+        const res = await fetch(`${appUrl}/api/memory/query`, {
+          method: 'POST',
+          headers: apiHeaders,
+          body: JSON.stringify({ query, workspaceId: user.workspaceId, repoFullName: user.activeRepo })
+        })
+
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to query memory')
+
+        const answer = data.answer || "Nothing stored on that. Either it predates the integration or nobody wrote it down."
+        return interaction.editReply({ 
+          embeds: [{ 
+            title: `Memory Query: "${query}"`,
+            description: answer, 
+            color: 0xC9A84C,
+            fields: [
+              { name: 'Repository Context', value: `\`${user.activeRepo}\``, inline: true }
+            ],
+            footer: { text: 'Mnemo Decision Intelligence' }
+          }] 
+        })
+      }
+
+      // ─── Command: /premortem (Setup risk check) ───
+      if (commandName === 'premortem') {
+        const details = interaction.options.getString('details', true)
+
+        const embed = {
+          title: 'Proposed Architectural Change',
+          description: details,
+          color: 0xC9A84C,
+          fields: [
+            { name: 'Initiator', value: `@${interaction.user.username}`, inline: true },
+            { name: 'Repository', value: `\`${user.activeRepo}\``, inline: true },
+            { name: 'Status', value: 'Ready for analysis', inline: true }
+          ]
+        }
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('run_premerge')
+            .setLabel('Run Pre-merge Analysis')
+            .setStyle(ButtonStyle.Primary)
+        )
+
+        return interaction.editReply({ embeds: [embed], components: [row] as any })
+      }
+
+      // ─── Command: /onboarding (Generate brief) ───
+      if (commandName === 'onboarding') {
+        const service = interaction.options.getString('service', true)
+
+        const res = await fetch(`${appUrl}/api/onboarding`, {
+          method: 'POST',
+          headers: apiHeaders,
+          body: JSON.stringify({ service, workspaceId: user.workspaceId, repoFullName: user.activeRepo })
+        })
+
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to generate brief')
+
+        const decisionsList = (data.decisions || []).slice(0, 5).map((d: any) => {
+          const symbol = d.health?.label === 'Reversed' ? '🔴' : d.health?.label === 'Stale' ? '🟡' : '🟢'
+          return `${symbol} **${d.title}** (${d.health?.label || 'Healthy'})\nScope: *${d.source}*`
+        }).join('\n\n')
+
+        const embed = {
+          title: `Onboarding Brief: ${service}`,
+          description: data.summary || 'Review technical patterns before beginning.',
+          color: 0xC9A84C,
+          fields: [
+            { name: 'Repository', value: `\`${user.activeRepo}\``, inline: false },
+            { 
+              name: 'Key Architectural Precedents', 
+              value: decisionsList || 'No explicit database decisions mapped. Explore other modules on the website.' 
+            }
+          ],
+          footer: { text: 'Head to the website for full onboarding briefs.' }
+        }
+
+        return interaction.editReply({ embeds: [embed] })
+      }
+
+    } catch (err: any) {
+      console.error('Error handling slash command:', err)
+      return interaction.editReply(`An error occurred while handling your request: ${err.message || String(err)}`)
     }
+  }
 
-    const res = await groq.chat.completions.create({
-      model: 'qwen-qwen3-32b',
-      temperature: 0.1,
-      max_tokens: 400,
-      messages: [
-        { role: 'system', content: 'Answer using only the recalled memories. Lead with the fact, then context. Max 200 words. No filler.' },
-        { role: 'user', content: `Question: ${query}\n\nMemories: ${JSON.stringify(memories)}` }
-      ]
-    })
+  // 3. Handle Button Interaction (Run Pre-merge Analysis)
+  if (interaction.isButton()) {
+    if (interaction.customId === 'run_premerge') {
+      await interaction.deferReply()
 
-    const answer = res.choices[0].message.content ?? 'No answer generated.'
-    return interaction.editReply({ embeds: [{ description: answer, color: 0xC9A84C }] })
-  } catch (err) {
-    console.error('Error handling interaction:', err)
-    return interaction.editReply('An error occurred while retrieving decision memory.')
+      const guildId = interaction.guildId
+      const proposalText = interaction.message.embeds[0]?.description
+      if (!proposalText) {
+        return interaction.editReply('Could not retrieve proposal details.')
+      }
+
+      try {
+        const user = await resolveWorkspaceAndUser(interaction.user.id, guildId)
+        if (!user) {
+          return interaction.editReply('Your Discord account is not connected to a Mnemo workspace.')
+        }
+
+        if (!user.activeRepo) {
+          return interaction.editReply('No active repository selected. Please run `/set-repo` first.')
+        }
+
+        const res = await fetch(`${appUrl}/api/memory/premortem`, {
+          method: 'POST',
+          headers: apiHeaders,
+          body: JSON.stringify({ text: proposalText, workspaceId: user.workspaceId, repoFullName: user.activeRepo })
+        })
+
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to analyze pre-mortem')
+
+        const hasCritical = data.warningLevel === 'critical'
+        const modes = data.failureModes || []
+
+        let alert1Title = "Safety Alert"
+        let alert2Title = "Safety Alert"
+        
+        if (hasCritical) {
+          alert1Title = "Engineering Red Alert"
+        }
+        
+        const formattedAlerts = modes.slice(0, 2).map((m: any, idx: number) => {
+          const title = idx === 0 ? alert1Title : alert2Title
+          return `### 🚨 ${title}: ${m.risk}\n**Why history suggests it:** ${m.whyHistorySuggestsIt}\n**Mitigation:** ${m.mitigation}`
+        }).join('\n\n')
+        
+        const finalAlertsText = formattedAlerts || '### ⚑ Safety Alert - No immediate risks found.\n*No critical conflicts or health decay issues identified in codebase memory.*'
+
+        const responseEmbed = {
+          title: `Pre-Merge Risk Assessment (${user.activeRepo})`,
+          description: finalAlertsText,
+          color: 0xEF4444,
+          footer: { text: 'Head to the website for interactive pre-mortem graphs.' }
+        }
+
+        const disabledRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('run_premerge')
+            .setLabel('Analysis Completed')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(true)
+        )
+        await interaction.message.edit({ components: [disabledRow] as any })
+
+        return interaction.editReply({ embeds: [responseEmbed] })
+      } catch (err: any) {
+        console.error('Error running pre-merge analysis:', err)
+        return interaction.editReply(`Failed to complete pre-merge analysis: ${err.message || String(err)}`)
+      }
+    }
   }
 })
 
@@ -78,15 +302,40 @@ client.once('ready', async () => {
 
   const commands = [
     new SlashCommandBuilder()
-      .setName('lore')
+      .setName('set-repo')
+      .setDescription('Set the active repository for your Mnemo commands')
+      .addStringOption((o: any) =>
+        o.setName('repo')
+         .setDescription('Select a connected repository')
+         .setRequired(true)
+         .setAutocomplete(true)
+      ),
+    new SlashCommandBuilder()
+      .setName('mnemo')
       .setDescription('Query your engineering decision memory')
       .addStringOption((o: any) =>
         o.setName('question').setDescription('What do you want to know?').setRequired(true)
+      ),
+    new SlashCommandBuilder()
+      .setName('premortem')
+      .setDescription('Run a pre-mortem risk assessment on a proposed change')
+      .addStringOption((o: any) =>
+        o.setName('details').setDescription('Explain the proposed architectural change').setRequired(true)
+      ),
+    new SlashCommandBuilder()
+      .setName('onboarding')
+      .setDescription('Generate an onboarding brief for a specific service or domain')
+      .addStringOption((o: any) =>
+        o.setName('service').setDescription('Which service or domain?').setRequired(true)
       )
   ]
 
   const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN!)
-  await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!), {
+  const clientId = process.env.DISCORD_CLIENT_ID || process.env.DISCORD_APPLICATION_ID
+  if (!clientId) {
+    throw new Error('DISCORD_CLIENT_ID or DISCORD_APPLICATION_ID is required to register slash commands.')
+  }
+  await rest.put(Routes.applicationCommands(clientId), {
     body: commands.map((c: any) => c.toJSON())
   })
 })

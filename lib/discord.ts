@@ -1,43 +1,86 @@
-import nacl from "tweetnacl";
-import type { ChatAnswer } from "@/lib/types";
+import { db } from './db'
 
-export function verifyDiscordSignature(
-  publicKey: string | undefined,
-  signature: string | null,
-  timestamp: string | null,
-  body: string
-): boolean {
-  if (!publicKey) return true; // Bypass signature check if not configured in dev
-  if (!signature || !timestamp) return false;
+export async function sendDiscordAlert(workspaceId: string, payload: {
+  title: string
+  description: string
+  color?: number
+  fields?: { name: string; value: string; inline?: boolean }[]
+}) {
+  const token = process.env.DISCORD_BOT_TOKEN
+  if (!token) {
+    console.warn('[discord-alert] DISCORD_BOT_TOKEN not configured.')
+    return
+  }
 
   try {
-    const isVerified = nacl.sign.detached.verify(
-      Buffer.from(timestamp + body, "utf-8"),
-      Buffer.from(signature, "hex"),
-      Buffer.from(publicKey, "hex")
-    );
-    return isVerified;
+    const installations = await db.botInstallation.findMany({
+      where: { workspaceId, platform: 'discord' }
+    })
+
+    if (installations.length === 0) {
+      console.log(`[discord-alert] No Discord bot installations for workspace ${workspaceId}`)
+      return
+    }
+
+    for (const inst of installations) {
+      const guildId = inst.platformId
+      
+      // 1. Fetch channels in the guild
+      const channelsRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
+        headers: {
+          Authorization: `Bot ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!channelsRes.ok) {
+        console.error(`[discord-alert] Failed to fetch channels for guild ${guildId}:`, await channelsRes.text())
+        continue
+      }
+
+      const channels = await channelsRes.json()
+      if (!Array.isArray(channels)) continue
+
+      // 2. Find target channel (look for "general", "mnemo-alerts", or the first text channel type 0)
+      const textChannels = channels.filter((c: any) => c.type === 0)
+      if (textChannels.length === 0) continue
+
+      const targetChannel = textChannels.find((c: any) => c.name === 'mnemo-alerts') || 
+                            textChannels.find((c: any) => c.name === 'general') ||
+                            textChannels[0]
+
+      if (!targetChannel) continue
+
+      // 3. Send message with embed
+      const embed = {
+        title: payload.title,
+        description: payload.description,
+        color: payload.color || 0xC9A84C,
+        fields: payload.fields || [],
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: 'Mnemo Decision Intelligence'
+        }
+      }
+
+      const msgRes = await fetch(`https://discord.com/api/v10/channels/${targetChannel.id}/messages`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bot ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          embeds: [embed]
+        })
+      })
+
+      if (!msgRes.ok) {
+        console.error(`[discord-alert] Failed to send message to channel ${targetChannel.id}:`, await msgRes.text())
+      } else {
+        console.log(`[discord-alert] Alert sent to Discord channel #${targetChannel.name} in guild ${guildId}`)
+      }
+    }
   } catch (err) {
-    console.error("Discord signature verification error:", err);
-    return false;
+    console.error('[discord-alert] Error sending Discord alert:', err)
   }
-}
-
-export function formatDiscordResponse(answer: ChatAnswer): string {
-  let content = `🧠 **Mnemo Context Synthesis**\n\n${answer.answer}\n\n`;
-
-  if (answer.decision) {
-    content += `**Core Decision:** ${answer.decision}\n`;
-  }
-  if (answer.rationale) {
-    content += `**Rationale:** ${answer.rationale}\n`;
-  }
-  if (answer.evidence && answer.evidence.length > 0) {
-    content += `\n**References:**\n`;
-    answer.evidence.slice(0, 3).forEach((ev) => {
-      content += `* [\`${ev.id}\`] (${ev.source}): _"${ev.text.substring(0, 80)}..."_\n`;
-    });
-  }
-
-  return content;
 }

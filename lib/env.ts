@@ -59,7 +59,7 @@ export const env = {
   },
   groq: { apiKey: process.env.GROQ_API_KEY || 'mock_groq_api_key' },
   discord: {
-    clientId: process.env.DISCORD_CLIENT_ID ?? '',
+    clientId: process.env.DISCORD_CLIENT_ID || process.env.DISCORD_APPLICATION_ID || '',
     clientSecret: process.env.DISCORD_CLIENT_SECRET ?? '',
     botToken: process.env.DISCORD_BOT_TOKEN ?? '',
     redirectUri: process.env.DISCORD_REDIRECT_URI ?? '',

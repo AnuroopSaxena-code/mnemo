@@ -7,24 +7,36 @@ export async function GET() {
   if (!session) return NextResponse.json({ user: null })
 
   try {
-    let [repos, decisions, integrations] = await Promise.all([
+    let [dbUser, repos, decisions, integrations] = await Promise.all([
+      db.user.findUnique({ where: { id: session.userId } }),
       db.repo.findMany({ where: { workspaceId: session.workspaceId } }),
       db.decision.count({ where: { workspaceId: session.workspaceId } }),
       db.botInstallation.findMany({ where: { workspaceId: session.workspaceId } }),
     ])
 
-    // decisions is already retrieved via db.decision.count
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     return NextResponse.json({
       user: {
-        id: session.user.id,
-        login: session.user.githubLogin,
-        avatarUrl: session.user.avatarUrl,
-        role: session.user.role,
+        id: dbUser.id,
+        login: dbUser.githubLogin,
+        avatarUrl: dbUser.avatarUrl,
+        role: dbUser.role,
+        discordId: dbUser.discordId,
+        discordUsername: dbUser.discordUsername,
       },
       workspace: { id: session.workspaceId },
       repos,
       decisions,
-      integrations: integrations.map((i: any) => ({ platform: i.platform, connectedAt: i.installedAt })),
+      integrations: integrations.map((i: any) => ({
+        id: i.id,
+        platform: i.platform,
+        platformId: i.platformId,
+        guildName: i.platformToken,
+        connectedAt: i.installedAt
+      })),
     })
   } catch (err) {
     console.error('Failed to retrieve current user info:', err)

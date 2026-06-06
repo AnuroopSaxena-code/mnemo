@@ -24,9 +24,12 @@ model User {
   githubLogin String
   githubToken String
   avatarUrl   String    @default("")
-  role        String    @default("member")
-  createdAt   DateTime  @default(now())
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  role            String    @default("member")
+  discordId       String?   @unique
+  discordUsername String?
+  activeRepo      String?
+  createdAt       DateTime  @default(now())
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
 }
 
 model Repo {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
 import { recall } from '@/lib/memory'
+import { resolveBotOrSession } from '@/lib/session'
 import { synthesiseAnswer } from '@/lib/groq'
 
 function mapDbDecisionToRecord(d: any) {
@@ -38,12 +39,17 @@ function mapDbDecisionToRecord(d: any) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession()
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const { query, repoFullName } = await req.json()
-    if (!query?.trim()) return NextResponse.json({ error: 'Query required' }, { status: 400 })
+    const auth = await resolveBotOrSession(req)
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    
+    const body = await req.json()
+    const { query, repoFullName } = body
+    const targetWorkspaceId = auth.isBot ? body.workspaceId : auth.workspaceId
 
-    const workspace = await db.workspace.findUnique({ where: { id: session.workspaceId } })
+    if (!query?.trim()) return NextResponse.json({ error: 'Query required' }, { status: 400 })
+    if (!targetWorkspaceId) return NextResponse.json({ error: 'Workspace ID required' }, { status: 400 })
+
+    const workspace = await db.workspace.findUnique({ where: { id: targetWorkspaceId } })
     if (!workspace) return NextResponse.json({ error: 'Workspace not found' }, { status: 404 })
 
     const allMemories = await recall(workspace.hindsightBankId, query, 15)

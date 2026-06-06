@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { OnboardingBrief } from "@/lib/types";
 import { recall } from "@/lib/memory";
-import { getSession } from "@/lib/session";
+import { getSession, resolveBotOrSession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { scoreDecisionHealth } from "@/lib/health";
 import { groq, MODEL } from "@/lib/groq";
@@ -10,7 +10,8 @@ import { groq, MODEL } from "@/lib/groq";
 const schema = z.object({
   service: z.string().min(2),
   bankId: z.string().optional(),
-  repoFullName: z.string().optional()
+  repoFullName: z.string().optional(),
+  workspaceId: z.string().optional()
 });
 
 function mapDbDecisionToRecord(d: any) {
@@ -45,16 +46,21 @@ function mapDbDecisionToRecord(d: any) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const auth = await resolveBotOrSession(request);
+    if (!auth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = schema.parse(await request.json());
     
     let targetBankId = body.bankId;
     if (!targetBankId) {
-      const session = await getSession();
-      if (session) {
+      const workspaceId = auth.isBot ? body.workspaceId : auth.workspaceId;
+      if (workspaceId) {
         const workspace = await db.workspace.findUnique({
-          where: { id: session.workspaceId }
+          where: { id: workspaceId }
         });
         if (workspace) {
           targetBankId = workspace.hindsightBankId;

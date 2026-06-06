@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useState } from "react";
 import type { DecisionRecord } from "@/lib/types";
 
 interface DecisionDetailScreenProps {
@@ -21,12 +22,47 @@ export function DecisionDetailScreen({
   decision,
   onBack,
 }: DecisionDetailScreenProps) {
+  const [status, setStatus] = useState(decision.state);
+  const [reversalReason, setReversalReason] = useState((decision as any).reversalReason || "");
+  const [showReversalForm, setShowReversalForm] = useState(false);
+  const [newReason, setNewReason] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isInferred = decision.id.startsWith("inf_");
+
+  async function handleUpdateStatus(newStatus: string, reasonText?: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/decisions/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: decision.id,
+          status: newStatus,
+          reversalReason: reasonText
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update status");
+      
+      setStatus(newStatus as any);
+      if (reasonText) setReversalReason(reasonText);
+      setShowReversalForm(false);
+    } catch (err: any) {
+      setError(err.message || "Failed to update decision status");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const timelineStates = decision.lifecycle?.length
-    ? decision.lifecycle
+    ? decision.lifecycle.map(l => ({ ...l, state: l.id === `evt_${decision.id}` ? status : l.state }))
     : [
         {
           id: "init",
-          state: decision.state,
+          state: status,
           date: decision.date,
           title: decision.title,
           summary: "",
@@ -75,12 +111,67 @@ export function DecisionDetailScreen({
             fontSize: "clamp(24px, 4vw, 32px)",
             color: "var(--color-ink)",
             fontWeight: 400,
-            margin: "0 0 32px 0",
+            margin: "0 0 12px 0",
             lineHeight: 1.3,
           }}
         >
           {decision.title}
         </h1>
+
+        {/* Status Badge */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+          <span
+            className="font-mono"
+            style={{
+              fontSize: "11px",
+              padding: "4px 8px",
+              borderRadius: "var(--radius-sm)",
+              background: stateColors[status] || "var(--color-surface-2)",
+              color: status === "reversed" ? "#fff" : "var(--color-bg)",
+              textTransform: "uppercase",
+              fontWeight: 600,
+              letterSpacing: "0.05em",
+            }}
+          >
+            {status}
+          </span>
+          <span className="font-mono" style={{ fontSize: "11px", color: "var(--color-ink-muted)" }}>
+            Scope: {decision.scope || "global"}
+          </span>
+        </div>
+
+        {/* Reversal Reason */}
+        {status === "reversed" && (
+          <div
+            style={{
+              background: "rgba(239, 68, 68, 0.08)",
+              border: "1px solid var(--color-error)",
+              borderRadius: "var(--radius)",
+              padding: "20px",
+              marginBottom: 32,
+            }}
+          >
+            <h4
+              className="font-mono"
+              style={{
+                fontSize: "11px",
+                color: "var(--color-error)",
+                textTransform: "uppercase",
+                margin: "0 0 8px",
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+              }}
+            >
+              Reversal Precedent
+            </h4>
+            <p
+              className="font-body"
+              style={{ fontSize: "14px", color: "var(--color-ink-dim)", margin: 0, lineHeight: 1.6 }}
+            >
+              {reversalReason || "No reversal reason recorded."}
+            </p>
+          </div>
+        )}
 
         {/* Timeline arc */}
         {timelineStates.length > 0 && (
@@ -259,6 +350,161 @@ export function DecisionDetailScreen({
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {/* Status Management (only for non-inferred database decisions) */}
+        {!isInferred && (
+          <section
+            style={{
+              borderTop: "1px solid var(--color-border)",
+              paddingTop: 24,
+              marginTop: 40,
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            <h3
+              className="font-mono"
+              style={{
+                fontSize: "10px",
+                color: "var(--color-ink-muted)",
+                textTransform: "uppercase",
+                letterSpacing: "0.15em",
+                margin: 0,
+              }}
+            >
+              Manage Decision Status (alerts discord)
+            </h3>
+            
+            {error && (
+              <p className="font-mono" style={{ fontSize: "12px", color: "var(--color-error)", margin: 0 }}>
+                {error}
+              </p>
+            )}
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {status !== "reversed" && (
+                <button
+                  className="font-mono btn-press"
+                  disabled={loading}
+                  onClick={() => setShowReversalForm(true)}
+                  style={{
+                    background: "rgba(239, 68, 68, 0.1)",
+                    border: "1px solid var(--color-error)",
+                    color: "var(--color-error)",
+                    fontSize: "11px",
+                    padding: "8px 16px",
+                    borderRadius: "var(--radius-sm)",
+                    cursor: loading ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Reverse Decision
+                </button>
+              )}
+              {status !== "stale" && (
+                <button
+                  className="font-mono btn-press"
+                  disabled={loading}
+                  onClick={() => handleUpdateStatus("stale")}
+                  style={{
+                    background: "rgba(245, 158, 11, 0.1)",
+                    border: "1px solid var(--color-warn)",
+                    color: "var(--color-warn)",
+                    fontSize: "11px",
+                    padding: "8px 16px",
+                    borderRadius: "var(--radius-sm)",
+                    cursor: loading ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Mark Stale
+                </button>
+              )}
+              {status !== "decided" && (status as string) !== "standing" && (
+                <button
+                  className="font-mono btn-press"
+                  disabled={loading}
+                  onClick={() => handleUpdateStatus("decided")}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid var(--color-accent)",
+                    color: "var(--color-accent)",
+                    fontSize: "11px",
+                    padding: "8px 16px",
+                    borderRadius: "var(--radius-sm)",
+                    cursor: loading ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Mark Active
+                </button>
+              )}
+            </div>
+
+            {showReversalForm && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  marginTop: 8,
+                  background: "var(--color-surface-1)",
+                  padding: 16,
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius)",
+                }}
+              >
+                <label className="font-mono" style={{ fontSize: "11px", color: "var(--color-ink-dim)" }}>
+                  Enter reversal reason:
+                </label>
+                <input
+                  type="text"
+                  className="font-mono"
+                  value={newReason}
+                  onChange={(e) => setNewReason(e.target.value)}
+                  placeholder="e.g. Migration completed; replaced by federated gateway"
+                  style={{
+                    background: "var(--color-bg)",
+                    border: "1px solid var(--color-border)",
+                    color: "var(--color-ink)",
+                    padding: "8px 12px",
+                    fontSize: "12px",
+                    outline: "none",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    className="font-mono btn-press"
+                    disabled={loading || !newReason.trim()}
+                    onClick={() => handleUpdateStatus("reversed", newReason)}
+                    style={{
+                      background: "var(--color-error)",
+                      border: "none",
+                      color: "#fff",
+                      fontSize: "11px",
+                      padding: "6px 12px",
+                      cursor: loading || !newReason.trim() ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    Confirm Reversal
+                  </button>
+                  <button
+                    className="font-mono btn-press"
+                    onClick={() => setShowReversalForm(false)}
+                    style={{
+                      background: "transparent",
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-ink-muted)",
+                      fontSize: "11px",
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
