@@ -65,12 +65,6 @@ client.on('interactionCreate', async (interaction) => {
         if (repoCache.has(userId) && Date.now() - repoCache.get(userId)!.timestamp < CACHE_TTL) {
           choices = repoCache.get(userId)!.repos
         } else {
-          // Verify user first to prevent hitting the DB unnecessarily if they aren't linked
-          const user = await resolveUserOnly(userId, interaction.user.username)
-          if (!user) {
-            return interaction.respond([])
-          }
-
           // Fetch in background but enforce a 2-second timeout for the Discord response
           let isTimeout = false
           const fetchPromise = fetch(`${appUrl}/api/workspace/discord/bot-api`, {
@@ -93,7 +87,7 @@ client.on('interactionCreate', async (interaction) => {
           const timeoutPromise = new Promise<any[]>((resolve) => {
             setTimeout(() => {
               isTimeout = true
-              resolve([{ name: "⚠️ Loading repos... Please wait 5s and try typing again.", value: "LOADING" }])
+              resolve([{ name: "⚠️ Loading repos... wait 5s and try again.", value: "LOADING" }])
             }, 2000)
           })
 
@@ -105,6 +99,11 @@ client.on('interactionCreate', async (interaction) => {
             name: "⚠️ No repos connected. Connect on the website first.",
             value: "LINK_ON_WEBSITE"
           }])
+        }
+
+        // If it's the loading state, return it immediately without filtering
+        if (choices[0]?.value === "LOADING") {
+          return interaction.respond(choices)
         }
 
         const filtered = choices.filter((choice: any) => 
