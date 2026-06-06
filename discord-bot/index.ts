@@ -1,19 +1,9 @@
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
-import { PrismaClient } from '@prisma/client'
-import { PrismaPostgresAdapter } from '@prisma/adapter-ppg'
 import dotenv from 'dotenv'
 import path from 'path'
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
 dotenv.config()
-
-const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.PRISMA_DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/mnemo"
-if (!connectionString || connectionString.includes('localhost')) {
-  console.warn('[discord-bot] WARNING: Using local/fallback database URL. Prisma Postgres may not be available.')
-}
-
-const adapter = new PrismaPostgresAdapter({ connectionString })
-const db = new PrismaClient({ adapter })
 
 const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 const botToken = process.env.DISCORD_BOT_TOKEN!
@@ -25,48 +15,35 @@ const apiHeaders = {
 }
 
 async function resolveUserOnly(discordUserId: string, discordUsername: string) {
-  let user = await db.user.findFirst({
-    where: { discordId: discordUserId },
-    include: { workspace: true }
-  })
-
-  if (!user) {
-    const normalizedUsername = discordUsername.replace(/^@/, '').trim().toLowerCase()
-    const allUsers = await db.user.findMany({
-      where: { NOT: { discordUsername: null } },
-      include: { workspace: true }
+  try {
+    const res = await fetch(`${appUrl}/api/workspace/discord/bot-api`, {
+      method: 'POST',
+      headers: apiHeaders,
+      body: JSON.stringify({ action: 'resolve-user', discordUserId, discordUsername })
     })
-    
-    user = allUsers.find(u => {
-      const dbNormal = u.discordUsername?.replace(/^@/, '').trim().toLowerCase()
-      return dbNormal === normalizedUsername
-    }) || null
-
-    if (user) {
-      await db.user.update({
-        where: { id: user.id },
-        data: { discordId: discordUserId }
-      })
-      console.log(`Auto-linked user ${user.githubLogin} with Discord ID ${discordUserId} (username: ${discordUsername})`)
-    }
+    const data = await res.json()
+    if (!res.ok) return null
+    return data.user || null
+  } catch (err) {
+    console.error('resolveUserOnly failed:', err)
+    return null
   }
-
-  return user
 }
 
 async function resolveWorkspaceAndUser(discordUserId: string, guildId: string | null, discordUsername: string) {
-  const user = await resolveUserOnly(discordUserId, discordUsername)
-  if (!user) return null
-
-  // Check if bot is installed in this guild for this workspace
-  if (guildId) {
-    const inst = await db.botInstallation.findFirst({
-      where: { platform: 'discord', platformId: guildId, workspaceId: user.workspaceId }
+  try {
+    const res = await fetch(`${appUrl}/api/workspace/discord/bot-api`, {
+      method: 'POST',
+      headers: apiHeaders,
+      body: JSON.stringify({ action: 'resolve-user', discordUserId, discordUsername, guildId })
     })
-    if (!inst) return null
+    const data = await res.json()
+    if (!res.ok) return null
+    return data.user || null
+  } catch (err) {
+    console.error('resolveWorkspaceAndUser failed:', err)
+    return null
   }
-
-  return user
 }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
@@ -81,11 +58,15 @@ client.on('interactionCreate', async (interaction) => {
           return interaction.respond([])
         }
 
-        const repos = await db.repo.findMany({
-          where: { workspaceId: user.workspaceId }
+        const res = await fetch(`${appUrl}/api/workspace/discord/bot-api`, {
+          method: 'POST',
+          headers: apiHeaders,
+          body: JSON.stringify({ action: 'get-repos', discordUserId: interaction.user.id, discordUsername: interaction.user.username })
         })
+        const data = await res.json()
+        if (!res.ok) return interaction.respond([])
 
-        const choices = repos.map(r => ({ name: r.fullName, value: r.fullName }))
+        const choices = (data.repos || []).map((r: any) => ({ name: r.fullName, value: r.fullName }))
         if (choices.length === 0) {
           return interaction.respond([{
             name: "⚠️ No repos connected. Connect on the website first.",
@@ -94,7 +75,7 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         const focusedValue = interaction.options.getFocused()
-        const filtered = choices.filter(choice => 
+        const filtered = choices.filter((choice: any) => 
           choice.name.toLowerCase().includes(focusedValue.toLowerCase())
         ).slice(0, 25)
 
@@ -136,9 +117,7 @@ client.on('interactionCreate', async (interaction) => {
           })
         }
 
-        const isGuildConnected = guildId ? await db.botInstallation.findFirst({
-          where: { platform: 'discord', platformId: guildId, workspaceId: user.workspaceId }
-        }) : null
+        const userWithGuild = guildId ? await resolveWorkspaceAndUser(interaction.user.id, guildId, interaction.user.username) : null
 
         return interaction.editReply({
           embeds: [{
@@ -148,7 +127,7 @@ client.on('interactionCreate', async (interaction) => {
             fields: [
               { name: 'Linked User', value: `@${user.discordUsername} (Mnemo User: ${user.githubLogin})`, inline: true },
               { name: 'Active Repository', value: user.activeRepo ? `\`${user.activeRepo}\`` : "❌ None set. Run `/set-repo` to set one.", inline: false },
-              { name: 'Server Status', value: guildId ? (isGuildConnected ? "🟢 Connected" : "❌ Bot not authorized for this workspace in this server.") : "N/A (DM Context)", inline: true }
+              { name: 'Server Status', value: guildId ? (userWithGuild ? "🟢 Connected" : "❌ Bot not authorized for this workspace in this server.") : "N/A (DM Context)", inline: true }
             ],
             footer: { text: `Mnemo Settings • ${appUrl}` }
           }]
@@ -175,21 +154,19 @@ client.on('interactionCreate', async (interaction) => {
           )
         }
 
-        const repoExists = await db.repo.findFirst({
-          where: { fullName: repo, workspaceId: user.workspaceId }
+        const res = await fetch(`${appUrl}/api/workspace/discord/bot-api`, {
+          method: 'POST',
+          headers: apiHeaders,
+          body: JSON.stringify({ action: 'set-repo', discordUserId: interaction.user.id, repo })
         })
+        const data = await res.json()
 
-        if (!repoExists) {
+        if (!res.ok) {
           return interaction.editReply(
             `The repository **${repo}** is not linked to your Mnemo workspace.\n` +
             `If you do not see your repository here, link it on the website first: ${appUrl}`
           )
         }
-
-        await db.user.update({
-          where: { id: user.id },
-          data: { activeRepo: repo }
-        })
 
         return interaction.editReply({
           embeds: [{

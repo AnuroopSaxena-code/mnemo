@@ -1,0 +1,56 @@
+2026-06-06T13:51:49: PM2 log: ===============================================================================
+2026-06-06T13:51:49: PM2 log: --- New PM2 Daemon started ----------------------------------------------------
+2026-06-06T13:51:49: PM2 log: Time                 : Sat Jun 06 2026 13:51:49 GMT+0530 (India Standard Time)
+2026-06-06T13:51:49: PM2 log: PM2 version          : 7.0.1
+2026-06-06T13:51:49: PM2 log: Node.js version      : 24.14.1
+2026-06-06T13:51:49: PM2 log: Current arch         : x64
+2026-06-06T13:51:49: PM2 log: PM2 home             : c:\Users\anuro\Documents\Mnemo\.pm2
+2026-06-06T13:51:49: PM2 log: PM2 PID file         : c:\Users\anuro\Documents\Mnemo\.pm2\pm2.pid
+2026-06-06T13:51:49: PM2 log: RPC socket file      : \\.\pipe\rpc.sock
+2026-06-06T13:51:49: PM2 log: BUS socket file      : \\.\pipe\pub.sock
+2026-06-06T13:51:49: PM2 log: Application log path : c:\Users\anuro\Documents\Mnemo\.pm2\logs
+2026-06-06T13:51:49: PM2 log: Worker Interval      : 30000
+2026-06-06T13:51:49: PM2 log: Process dump file    : c:\Users\anuro\Documents\Mnemo\.pm2\dump.pm2
+2026-06-06T13:51:49: PM2 log: Concurrent actions   : 2
+2026-06-06T13:51:49: PM2 log: SIGTERM timeout      : 1600
+2026-06-06T13:51:49: PM2 log: Runtime Binary       : C:\Program Files\nodejs\node.exe
+2026-06-06T13:51:49: PM2 log: ===============================================================================
+2026-06-06T13:51:49: PM2 log: PM2 successfully stopped
+2026-06-06T13:51:50: PM2 log: ===============================================================================
+2026-06-06T13:51:50: PM2 log: --- New PM2 Daemon started ----------------------------------------------------
+2026-06-06T13:51:50: PM2 log: Time                 : Sat Jun 06 2026 13:51:50 GMT+0530 (India Standard Time)
+2026-06-06T13:51:50: PM2 log: PM2 version          : 7.0.1
+2026-06-06T13:51:50: PM2 log: Node.js version      : 24.14.1
+2026-06-06T13:51:50: PM2 log: Current arch         : x64
+2026-06-06T13:51:50: PM2 log: PM2 home             : c:\Users\anuro\Documents\Mnemo\.pm2
+2026-06-06T13:51:50: PM2 log: PM2 PID file         : c:\Users\anuro\Documents\Mnemo\.pm2\pm2.pid
+2026-06-06T13:51:50: PM2 log: RPC socket file      : \\.\pipe\rpc.sock
+2026-06-06T13:51:50: PM2 log: BUS socket file      : \\.\pipe\pub.sock
+2026-06-06T13:51:50: PM2 log: Application log path : c:\Users\anuro\Documents\Mnemo\.pm2\logs
+2026-06-06T13:51:50: PM2 log: Worker Interval      : 30000
+2026-06-06T13:51:50: PM2 log: Process dump file    : c:\Users\anuro\Documents\Mnemo\.pm2\dump.pm2
+2026-06-06T13:51:50: PM2 log: Concurrent actions   : 2
+2026-06-06T13:51:50: PM2 log: SIGTERM timeout      : 1600
+2026-06-06T13:51:50: PM2 log: Runtime Binary       : C:\Program Files\nodejs\node.exe
+2026-06-06T13:51:50: PM2 log: ===============================================================================
+2026-06-06T13:51:50: PM2 log: App [mnemo-discord-bot:0] starting in -fork mode-
+2026-06-06T13:51:50: PM2 log: App [mnemo-discord-bot:0] online
+2026-06-06T13:51:50: PM2 error: (node:42612) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2026-06-06T13:51:55: PM2 log: ===============================================================================
+2026-06-06T13:51:55: PM2 log: --- New PM2 Daemon started ----------------------------------------------------
+2026-06-06T13:51:55: PM2 log: Time                 : Sat Jun 06 2026 13:51:55 GMT+0530 (India Standard Time)
+2026-06-06T13:51:55: PM2 log: PM2 version          : 7.0.1
+2026-06-06T13:51:55: PM2 log: Node.js version      : 24.14.1
+2026-06-06T13:51:55: PM2 log: Current arch         : x64
+2026-06-06T13:51:55: PM2 log: PM2 home             : c:\Users\anuro\Documents\Mnemo\.pm2
+2026-06-06T13:51:55: PM2 log: PM2 PID file         : c:\Users\anuro\Documents\Mnemo\.pm2\pm2.pid
+2026-06-06T13:51:55: PM2 log: RPC socket file      : \\.\pipe\rpc.sock
+2026-06-06T13:51:55: PM2 log: BUS socket file      : \\.\pipe\pub.sock
+2026-06-06T13:51:55: PM2 log: Application log path : c:\Users\anuro\Documents\Mnemo\.pm2\logs
+2026-06-06T13:51:55: PM2 log: Worker Interval      : 30000
+2026-06-06T13:51:55: PM2 log: Process dump file    : c:\Users\anuro\Documents\Mnemo\.pm2\dump.pm2
+2026-06-06T13:51:55: PM2 log: Concurrent actions   : 2
+2026-06-06T13:51:55: PM2 log: SIGTERM timeout      : 1600
+2026-06-06T13:51:55: PM2 log: Runtime Binary       : C:\Program Files\nodejs\node.exe
+2026-06-06T13:51:55: PM2 log: ===============================================================================
