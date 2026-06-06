@@ -374,7 +374,7 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
                                 color: "var(--color-ink-muted)",
                               }}
                             >
-                              {evt.date} \u00b7 {evt.source}
+                              {evt.date} {"\u00b7"} {evt.source}
                             </span>
                             <span
                               className="font-mono"
@@ -401,7 +401,7 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
                                 userSelect: "none",
                               }}
                             >
-                              \u27f6
+                              {"\u27f6"}
                             </span>
                           )}
                         </div>
@@ -456,7 +456,7 @@ export function TimelineTab({ decisions, onDecisionClick, activeRepo }: Timeline
                       padding: 0,
                     }}
                   >
-                    inspect full details \u2192
+                    inspect full details {"\u2192"}
                   </button>
                 </div>
               </div>

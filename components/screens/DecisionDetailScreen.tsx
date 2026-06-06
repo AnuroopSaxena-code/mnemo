@@ -64,7 +64,7 @@ export function DecisionDetailScreen({
               padding: 0,
             }}
           >
-            \u2190 mnemo
+            {"\u2190"} mnemo
           </button>
         </nav>
 
@@ -216,13 +216,13 @@ export function DecisionDetailScreen({
                       marginRight: 8,
                     }}
                   >
-                    \u00d7
+                    {"\u00d7"}
                   </span>
                   <span style={{ color: "var(--color-ink)" }}>
                     {alt.name}
                   </span>
                   <span style={{ marginLeft: 8 }}>
-                    \u2014 {alt.rejectedBecause}
+                    {"\u2014"} {alt.rejectedBecause}
                   </span>
                 </li>
               ))}
@@ -254,7 +254,7 @@ export function DecisionDetailScreen({
                     overflowWrap: "anywhere",
                   }}
                 >
-                  <span style={{ marginRight: 8 }}>\u2691</span>
+                  <span style={{ marginRight: 8 }}>{"\u2691"}</span>
                   {caveat}
                 </li>
               ))}

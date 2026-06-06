@@ -390,7 +390,7 @@ export function OnboardingTab({
                               padding: 0,
                             }}
                           >
-                            see timeline \u2192
+                            see timeline {"\u2192"}
                           </button>
                         )}
                       </div>

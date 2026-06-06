@@ -456,7 +456,7 @@ export function PreMortemTab({
                         color: "var(--color-ink-muted)",
                       }}
                     >
-                      d\u00e9j\u00e0 vu detector active
+                      déjà vu detector active
                     </span>
                   </div>
                   <h4
@@ -771,7 +771,7 @@ export function PreMortemTab({
                           color: "var(--color-ink-muted)",
                         }}
                       >
-                        {rec.date} \u00b7 {rec.scope}
+                        {rec.date} {"\u00b7"} {rec.scope}
                       </span>
                       {memory.health && (
                         <span

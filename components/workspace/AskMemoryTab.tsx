@@ -561,7 +561,7 @@ export function AskMemoryTab({
                                   color: "var(--color-ink-muted)",
                                 }}
                               >
-                                {rec.date} \u00b7 @
+                                {rec.date} {"\u00b7"} @
                                 {rec.people[0] || "team"}
                               </span>
                               <button
@@ -576,7 +576,7 @@ export function AskMemoryTab({
                                   padding: 0,
                                 }}
                               >
-                                inspect \u2192
+                                inspect {"\u2192"}
                               </button>
                             </div>
                           </div>
