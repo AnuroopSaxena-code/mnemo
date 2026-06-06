@@ -13,9 +13,9 @@ if (!env.APP_URL && !env.NEXT_PUBLIC_APP_URL) {
 
 console.log(`[mnemo-launcher] Starting Discord Bot pointing to: ${env.APP_URL || env.NEXT_PUBLIC_APP_URL}`);
 
-const botProcess = spawn('npx', ['tsx', 'discord-bot/index.ts'], {
+const botProcess = spawn('node', ['./node_modules/tsx/dist/cli.mjs', 'discord-bot/index.ts'], {
   stdio: ['ignore', 'pipe', 'pipe'],
-  shell: true,
+  shell: false,
   cwd: __dirname,
   env
 });
