@@ -20,11 +20,38 @@ const apiHeaders = {
   'Authorization': `Bot ${botToken}`
 }
 
-async function resolveWorkspaceAndUser(discordUserId: string, guildId: string | null) {
-  const user = await db.user.findFirst({
+async function resolveUserOnly(discordUserId: string, discordUsername: string) {
+  let user = await db.user.findFirst({
     where: { discordId: discordUserId },
     include: { workspace: true }
   })
+
+  if (!user) {
+    const normalizedUsername = discordUsername.replace(/^@/, '').trim().toLowerCase()
+    const allUsers = await db.user.findMany({
+      where: { NOT: { discordUsername: null } },
+      include: { workspace: true }
+    })
+    
+    user = allUsers.find(u => {
+      const dbNormal = u.discordUsername?.replace(/^@/, '').trim().toLowerCase()
+      return dbNormal === normalizedUsername
+    }) || null
+
+    if (user) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { discordId: discordUserId }
+      })
+      console.log(`Auto-linked user ${user.githubLogin} with Discord ID ${discordUserId} (username: ${discordUsername})`)
+    }
+  }
+
+  return user
+}
+
+async function resolveWorkspaceAndUser(discordUserId: string, guildId: string | null, discordUsername: string) {
+  const user = await resolveUserOnly(discordUserId, discordUsername)
   if (!user) return null
 
   // Check if bot is installed in this guild for this workspace
@@ -45,9 +72,7 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isAutocomplete()) {
     if (interaction.commandName === 'set-repo') {
       try {
-        const user = await db.user.findFirst({
-          where: { discordId: interaction.user.id }
-        })
+        const user = await resolveUserOnly(interaction.user.id, interaction.user.username)
         if (!user) {
           return interaction.respond([])
         }
@@ -56,9 +81,15 @@ client.on('interactionCreate', async (interaction) => {
           where: { workspaceId: user.workspaceId }
         })
 
-        const focusedValue = interaction.options.getFocused()
         const choices = repos.map(r => ({ name: r.fullName, value: r.fullName }))
+        if (choices.length === 0) {
+          return interaction.respond([{
+            name: "⚠️ No repos connected. Connect on the website first.",
+            value: "LINK_ON_WEBSITE"
+          }])
+        }
 
+        const focusedValue = interaction.options.getFocused()
         const filtered = choices.filter(choice => 
           choice.name.toLowerCase().includes(focusedValue.toLowerCase())
         ).slice(0, 25)
@@ -80,13 +111,47 @@ client.on('interactionCreate', async (interaction) => {
       commandName !== 'mnemo' && 
       commandName !== 'premortem' && 
       commandName !== 'onboarding' &&
-      commandName !== 'set-repo'
+      commandName !== 'set-repo' &&
+      commandName !== 'status'
     ) return
 
     await interaction.deferReply()
 
     try {
-      const user = await resolveWorkspaceAndUser(interaction.user.id, guildId)
+      // ─── Command: /status ───
+      if (commandName === 'status') {
+        const user = await resolveUserOnly(interaction.user.id, interaction.user.username)
+        if (!user) {
+          return interaction.editReply({
+            embeds: [{
+              title: "Mnemo Integration Status",
+              description: "❌ **Not Connected**\nYour Discord account is not linked to any Mnemo workspace.\n\nLink your account on the website first: " + appUrl,
+              color: 0xEF4444,
+              footer: { text: `Mnemo • ${appUrl}` }
+            }]
+          })
+        }
+
+        const isGuildConnected = guildId ? await db.botInstallation.findFirst({
+          where: { platform: 'discord', platformId: guildId, workspaceId: user.workspaceId }
+        }) : null
+
+        return interaction.editReply({
+          embeds: [{
+            title: "Mnemo Integration Status",
+            description: "✅ **Connected to Workspace**",
+            color: 0x10B981,
+            fields: [
+              { name: 'Linked User', value: `@${user.discordUsername} (Mnemo User: ${user.githubLogin})`, inline: true },
+              { name: 'Active Repository', value: user.activeRepo ? `\`${user.activeRepo}\`` : "❌ None set. Run `/set-repo` to set one.", inline: false },
+              { name: 'Server Status', value: guildId ? (isGuildConnected ? "🟢 Connected" : "❌ Bot not authorized for this workspace in this server.") : "N/A (DM Context)", inline: true }
+            ],
+            footer: { text: `Mnemo Settings • ${appUrl}` }
+          }]
+        })
+      }
+
+      const user = await resolveWorkspaceAndUser(interaction.user.id, guildId, interaction.user.username)
       if (!user) {
         return interaction.editReply(
           "Your Discord account is not linked to a Mnemo workspace, or this server is not connected to your workspace.\n" +
@@ -97,6 +162,14 @@ client.on('interactionCreate', async (interaction) => {
       // ─── Command: /set-repo (Set Active Repository) ───
       if (commandName === 'set-repo') {
         const repo = interaction.options.getString('repo', true)
+
+        if (repo === 'LINK_ON_WEBSITE') {
+          return interaction.editReply(
+            `You don't have any GitHub repositories connected to your Mnemo workspace yet.\n` +
+            `Please connect your repositories on the website first: ${appUrl}\n` +
+            `Once connected, they will appear in this menu.`
+          )
+        }
 
         const repoExists = await db.repo.findFirst({
           where: { fullName: repo, workspaceId: user.workspaceId }
@@ -237,13 +310,16 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       try {
-        const user = await resolveWorkspaceAndUser(interaction.user.id, guildId)
+        const user = await resolveWorkspaceAndUser(interaction.user.id, guildId, interaction.user.username)
         if (!user) {
           return interaction.editReply('Your Discord account is not connected to a Mnemo workspace.')
         }
 
         if (!user.activeRepo) {
-          return interaction.editReply('No active repository selected. Please run `/set-repo` first.')
+          return interaction.editReply(
+            "You haven't set an active repository yet! Please run `/set-repo` to choose a connected repository.\n" +
+            `If you do not see your repository there, link it on the website first: ${appUrl}`
+          )
         }
 
         const res = await fetch(`${appUrl}/api/memory/premortem`, {
@@ -301,6 +377,9 @@ client.once('ready', async () => {
   console.log(`Discord bot ready as ${client.user?.tag}`)
 
   const commands = [
+    new SlashCommandBuilder()
+      .setName('status')
+      .setDescription('Check your Mnemo integration and repository link status'),
     new SlashCommandBuilder()
       .setName('set-repo')
       .setDescription('Set the active repository for your Mnemo commands')

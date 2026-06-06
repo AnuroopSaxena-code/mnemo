@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
 const FADE_UP = (delay = 0) => ({
@@ -20,6 +20,7 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
   const [showInstallForm, setShowInstallForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const isDiscordLinked = !!authInfo?.user?.discordId;
   const linkedUsername = authInfo?.user?.discordUsername || "";
@@ -34,6 +35,7 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
     if (!discordUsername.trim()) return;
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       const mockId = `discord_usr_${Math.floor(100000 + Math.random() * 900000)}`;
       const res = await fetch("/api/auth/discord/link", {
@@ -45,6 +47,8 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
       if (!res.ok) throw new Error(data.error || "Failed to link account");
       
       setDiscordUsername("");
+      setSuccessMessage("Discord account linked successfully!");
+      setTimeout(() => setSuccessMessage(null), 4000);
       if (onRefreshAuth) onRefreshAuth();
     } catch (err: any) {
       setError(err.message || "Failed to link Discord account");
@@ -56,12 +60,16 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
   async function handleUnlink() {
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       const res = await fetch("/api/auth/discord/unlink", {
         method: "POST"
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to unlink account");
+      
+      setSuccessMessage("Discord account unlinked successfully!");
+      setTimeout(() => setSuccessMessage(null), 4000);
       if (onRefreshAuth) onRefreshAuth();
     } catch (err: any) {
       setError(err.message || "Failed to unlink Discord account");
@@ -74,6 +82,7 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
     if (!guildName.trim()) return;
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       const mockGuildId = `guild_${Math.floor(10000000 + Math.random() * 90000000)}`;
       const res = await fetch("/api/workspace/discord/bot-install", {
@@ -86,6 +95,8 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
       
       setGuildName("");
       setShowInstallForm(false);
+      setSuccessMessage(`Bot simulated successfully in server '${data.installation.guildName}'!`);
+      setTimeout(() => setSuccessMessage(null), 4000);
       if (onRefreshAuth) onRefreshAuth();
     } catch (err: any) {
       setError(err.message || "Failed to install bot");
@@ -103,8 +114,42 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
         gap: "56px",
         maxWidth: "1400px",
         margin: "0 auto",
+        position: "relative",
       }}
     >
+      {/* Toast Notification Banner */}
+      <AnimatePresence>
+        {(successMessage || error) && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            style={{
+              position: "fixed",
+              top: "24px",
+              right: "24px",
+              zIndex: 100,
+              background: successMessage ? "rgba(74, 222, 128, 0.1)" : "rgba(248, 81, 73, 0.1)",
+              backdropFilter: "blur(12px)",
+              border: `1px solid ${successMessage ? "rgba(74, 222, 128, 0.25)" : "rgba(248, 81, 73, 0.25)"}`,
+              borderRadius: "var(--radius)",
+              padding: "16px 24px",
+              boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.5)",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+            }}
+          >
+            <span style={{ fontSize: "16px", color: successMessage ? "var(--color-green)" : "var(--color-error)" }}>
+              {successMessage ? "✓" : "⚠️"}
+            </span>
+            <span className="font-mono" style={{ fontSize: "12px", color: "var(--color-ink)", fontWeight: 500 }}>
+              {successMessage || error}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Header */}
       <motion.header {...FADE_UP(0)} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         <span
@@ -174,13 +219,44 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
                   <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
                 </svg>
               </span>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <h2
-                  className="font-mono"
-                  style={{ fontSize: "18px", color: "var(--color-ink)", margin: 0, fontWeight: 500 }}
-                >
-                  Discord Bot
-                </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                  <h2
+                    className="font-mono"
+                    style={{ fontSize: "18px", color: "var(--color-ink)", margin: 0, fontWeight: 500 }}
+                  >
+                    Discord Bot
+                  </h2>
+                  <span
+                    className="font-mono"
+                    style={{
+                      fontSize: "9px",
+                      padding: "2px 6px",
+                      borderRadius: "2px",
+                      background: isDiscordLinked ? "rgba(74, 222, 128, 0.1)" : "rgba(255, 255, 255, 0.05)",
+                      color: isDiscordLinked ? "var(--color-green)" : "var(--color-ink-muted)",
+                      border: `1px solid ${isDiscordLinked ? "var(--color-green-dim)" : "var(--color-border)"}`,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: isDiscordLinked ? "var(--color-green)" : "var(--color-ink-muted)",
+                        display: "inline-block",
+                      }}
+                      className={isDiscordLinked ? "amber-pulse-dot" : undefined}
+                    />
+                    {isDiscordLinked ? "Linked" : "Not Linked"}
+                  </span>
+                </div>
                 <span className="font-mono" style={{ fontSize: "11px", color: "#5865F2" }}>
                   Surface memory in your engineering channels
                 </span>
@@ -263,6 +339,12 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
               </p>
             )}
 
+            {successMessage && (
+              <p className="font-mono" style={{ fontSize: "11px", color: "var(--color-green)", margin: 0 }}>
+                ✓ {successMessage}
+              </p>
+            )}
+
             {/* Link/Unlink section */}
             {!isDiscordLinked ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -305,16 +387,31 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>
-                    Linked Account
-                  </span>
-                  <span className="font-mono" style={{ fontSize: "13px", color: "var(--color-accent)" }}>
-                    @{linkedUsername}
-                  </span>
-                  <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-ghost)" }}>
-                    ID: {linkedDiscordId}
-                  </span>
+                <div 
+                  style={{ 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    gap: "8px",
+                    background: "rgba(74, 222, 128, 0.03)",
+                    border: "1px solid var(--color-green-dim)",
+                    padding: "12px",
+                    borderRadius: "2px"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ color: "var(--color-green)", fontSize: "14px" }}>✓</span>
+                    <span className="font-mono" style={{ fontSize: "10px", color: "var(--color-green)", fontWeight: 600, textTransform: "uppercase" }}>
+                      Successfully Linked
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <span className="font-mono" style={{ fontSize: "13px", color: "var(--color-ink)", fontWeight: 500 }}>
+                      @{linkedUsername}
+                    </span>
+                    <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)" }}>
+                      ID: {linkedDiscordId}
+                    </span>
+                  </div>
                 </div>
                 <button
                   className="font-mono btn-press"

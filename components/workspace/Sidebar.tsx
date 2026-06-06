@@ -133,6 +133,7 @@ export function Sidebar({
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {TABS.map((tab) => {
             const isActive = tab.id === activeTab;
+            const isSocialsConnected = tab.id === "socials" && !!authInfo?.user?.discordId;
             return (
               <li key={tab.id}>
                 <button
@@ -166,6 +167,19 @@ export function Sidebar({
                     {tab.index}
                   </span>
                   {!isCollapsed && tab.label}
+                  {isSocialsConnected && (
+                    <span
+                      style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: "var(--color-green)",
+                        marginLeft: isCollapsed ? 0 : 8,
+                        display: "inline-block",
+                      }}
+                      title="Social integration linked"
+                    />
+                  )}
                 </button>
               </li>
             );
@@ -393,35 +407,51 @@ export function MobileSidebar({
         {/* Mobile Tabs */}
         <nav style={{ marginBottom: 24 }} aria-label="Agent features">
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-            {TABS.map((tab) => (
-              <li key={tab.id}>
-                <button
-                  className="btn-press"
-                  onClick={() => {
-                    onTabSelect(tab.id);
-                    onClose();
-                  }}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    padding: "10px 0",
-                    background: "transparent",
-                    border: "none",
-                    borderBottom: "1px solid var(--color-border)",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 13,
-                    color:
-                      tab.id === activeTab
-                        ? "var(--color-accent)"
-                        : "var(--color-ink-dim)",
-                    textAlign: "left",
-                  }}
-                >
-                  {tab.label}
-                </button>
-              </li>
-            ))}
+            {TABS.map((tab) => {
+              const isSocialsConnected = tab.id === "socials" && !!authInfo?.user?.discordId;
+              return (
+                <li key={tab.id}>
+                  <button
+                    className="btn-press"
+                    onClick={() => {
+                      onTabSelect(tab.id);
+                      onClose();
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                      padding: "10px 0",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: "1px solid var(--color-border)",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 13,
+                      color:
+                        tab.id === activeTab
+                          ? "var(--color-accent)"
+                          : "var(--color-ink-dim)",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span>{tab.label}</span>
+                    {isSocialsConnected && (
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: "var(--color-green)",
+                          display: "inline-block",
+                        }}
+                      />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
