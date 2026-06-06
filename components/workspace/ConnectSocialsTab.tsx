@@ -435,101 +435,35 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
                 {/* Servers Section */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <span className="font-mono" style={{ fontSize: "9px", color: "var(--color-ink-muted)", textTransform: "uppercase" }}>
-                    Connected Servers ({discordInstallations.length})
+                    Connected Servers
                   </span>
                   {discordInstallations.map((inst: any) => (
                     <div key={inst.id} className="font-mono" style={{ fontSize: "11px", color: "var(--color-ink-dim)" }}>
-                      🟢 {inst.guildName || `Guild: ${inst.platformId.substring(0, 8)}`}
+                      {inst.guildName || `Guild: ${inst.platformId.substring(0, 8)}`}
                     </div>
                   ))}
 
-                  {!showInstallForm ? (
-                    <button
-                      className="font-mono btn-press"
-                      onClick={() => setShowInstallForm(true)}
-                      style={{
-                        background: "rgba(201, 168, 76, 0.1)",
-                        border: "1px dashed var(--color-accent)",
-                        color: "var(--color-accent)",
-                        padding: "8px 12px",
-                        fontSize: "11px",
-                        cursor: "pointer",
-                        width: "100%",
-                        marginTop: 4,
-                      }}
-                    >
-                      + Add Bot to Server
-                    </button>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: 4 }}>
-                      <input
-                        type="text"
-                        placeholder="Server (Guild) Name"
-                        value={guildName}
-                        onChange={(e) => setGuildName(e.target.value)}
-                        style={{
-                          background: "var(--color-bg)",
-                          border: "1px solid var(--color-border)",
-                          color: "var(--color-ink)",
-                          padding: "6px 10px",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "11px",
-                          outline: "none",
-                        }}
-                      />
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button
-                          className="font-mono btn-press"
-                          disabled={loading || !guildName.trim()}
-                          onClick={handleInstallBot}
-                          style={{
-                            background: "var(--color-accent)",
-                            border: "none",
-                            color: "var(--color-bg)",
-                            padding: "6px 12px",
-                            fontSize: "10px",
-                            fontWeight: 600,
-                            cursor: loading || !guildName.trim() ? "not-allowed" : "pointer",
-                            flex: 1,
-                          }}
-                        >
-                          Simulate
-                        </button>
-                        <a
-                          href="https://discord.com/oauth2/authorize?client_id=1512396495398113300&permissions=8&scope=bot%20applications.commands"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-mono btn-press"
-                          style={{
-                            background: "transparent",
-                            border: "1px solid var(--color-border)",
-                            color: "var(--color-ink)",
-                            padding: "6px 12px",
-                            fontSize: "10px",
-                            textAlign: "center",
-                            textDecoration: "none",
-                            flex: 1,
-                          }}
-                        >
-                          Authorize
-                        </a>
-                      </div>
-                      <button
-                        className="font-mono"
-                        onClick={() => setShowInstallForm(false)}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "var(--color-ink-muted)",
-                          fontSize: "10px",
-                          cursor: "pointer",
-                          alignSelf: "flex-start",
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
+                  <a
+                    href="https://discord.com/oauth2/authorize?client_id=1512396495398113300&permissions=8&scope=bot%20applications.commands"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono btn-press"
+                    style={{
+                      display: "block",
+                      textAlign: "center",
+                      textDecoration: "none",
+                      background: "rgba(201, 168, 76, 0.1)",
+                      border: "1px dashed var(--color-accent)",
+                      color: "var(--color-accent)",
+                      padding: "8px 12px",
+                      fontSize: "11px",
+                      cursor: "pointer",
+                      width: "100%",
+                      marginTop: 4,
+                    }}
+                  >
+                    + Add Bot to Server
+                  </a>
                 </div>
               </div>
             )}
