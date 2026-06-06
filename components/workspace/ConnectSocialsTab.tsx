@@ -244,16 +244,6 @@ export function ConnectSocialsTab({ authInfo, onRefreshAuth }: ConnectSocialsTab
                       gap: "4px",
                     }}
                   >
-                    <span
-                      style={{
-                        width: 5,
-                        height: 5,
-                        borderRadius: "50%",
-                        background: isDiscordLinked ? "var(--color-green)" : "var(--color-ink-muted)",
-                        display: "inline-block",
-                      }}
-                      className={isDiscordLinked ? "amber-pulse-dot" : undefined}
-                    />
                     {isDiscordLinked ? "Linked" : "Not Linked"}
                   </span>
                 </div>

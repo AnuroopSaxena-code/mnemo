@@ -133,7 +133,6 @@ export function Sidebar({
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {TABS.map((tab) => {
             const isActive = tab.id === activeTab;
-            const isSocialsConnected = tab.id === "socials" && !!authInfo?.user?.discordId;
             return (
               <li key={tab.id}>
                 <button
@@ -167,19 +166,6 @@ export function Sidebar({
                     {tab.index}
                   </span>
                   {!isCollapsed && tab.label}
-                  {isSocialsConnected && (
-                    <span
-                      style={{
-                        width: 5,
-                        height: 5,
-                        borderRadius: "50%",
-                        background: "var(--color-green)",
-                        marginLeft: isCollapsed ? 0 : 8,
-                        display: "inline-block",
-                      }}
-                      title="Social integration linked"
-                    />
-                  )}
                 </button>
               </li>
             );
@@ -232,8 +218,9 @@ export function Sidebar({
                     color: isActive ? "var(--color-ink)" : "var(--color-ink-muted)",
                     transition: "all 150ms ease",
                     whiteSpace: "nowrap",
+                    overflow: "hidden",
                   }}
-                  title={isCollapsed ? repoNameString : undefined}
+                  title={repoNameString}
                 >
                   <span
                     style={{
@@ -245,7 +232,11 @@ export function Sidebar({
                       flexShrink: 0,
                     }}
                   />
-                  {!isCollapsed && repoNameString}
+                  {!isCollapsed && (
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {repoNameString}
+                    </span>
+                  )}
                 </button>
               </li>
             );
@@ -408,7 +399,6 @@ export function MobileSidebar({
         <nav style={{ marginBottom: 24 }} aria-label="Agent features">
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {TABS.map((tab) => {
-              const isSocialsConnected = tab.id === "socials" && !!authInfo?.user?.discordId;
               return (
                 <li key={tab.id}>
                   <button
@@ -437,17 +427,6 @@ export function MobileSidebar({
                     }}
                   >
                     <span>{tab.label}</span>
-                    {isSocialsConnected && (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "var(--color-green)",
-                          display: "inline-block",
-                        }}
-                      />
-                    )}
                   </button>
                 </li>
               );
@@ -493,6 +472,9 @@ export function MobileSidebar({
                           ? "var(--color-accent)"
                           : "var(--color-ink-dim)",
                       textAlign: "left",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     }}
                   >
                     {repoNameString}
