@@ -25,7 +25,7 @@ model User {
   githubToken String
   avatarUrl   String    @default("")
   role            String    @default("member")
-  discordId       String?   @unique
+  discordId       String?
   discordUsername String?
   activeRepo      String?
   createdAt       DateTime  @default(now())
