@@ -1,5 +1,0 @@
-◇ injected env (18) from .env.local // tip: ⌘ enable debugging { debug: true }
-◇ injected env (1) from .env // tip: ⌁ auth for agents [www.vestauth.com]
-[mnemo-launcher] Starting Discord Bot pointing to: https://mne-mo.vercel.app/
-◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
-◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
