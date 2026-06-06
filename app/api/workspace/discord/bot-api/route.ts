@@ -51,15 +51,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ user: null })
       }
 
-      // 3. Check bot installation in guild
-      if (guildId) {
-        const inst = await db.botInstallation.findFirst({
-          where: { platform: 'discord', platformId: guildId, workspaceId: user.workspaceId }
-        })
-        if (!inst) {
-          return NextResponse.json({ user: null, error: 'Bot is not authorized in this server.' })
-        }
-      }
+      // 3. Check bot installation in guild (Relaxed for easier usage)
+      // if (guildId) {
+      //   const inst = await db.botInstallation.findFirst({
+      //     where: { platform: 'discord', platformId: guildId, workspaceId: user.workspaceId }
+      //   })
+      //   if (!inst) {
+      //     return NextResponse.json({ user: null, error: 'Bot is not authorized in this server.' })
+      //   }
+      // }
 
       return NextResponse.json({
         user: {
