@@ -1,11 +1,15 @@
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPostgresAdapter } from '@prisma/adapter-ppg'
-import 'dotenv/config'
+import dotenv from 'dotenv'
+import path from 'path'
 
-const connectionString = process.env.DATABASE_URL
-if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is required for the Discord bot.')
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+dotenv.config()
+
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.PRISMA_DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/mnemo"
+if (!connectionString || connectionString.includes('localhost')) {
+  console.warn('[discord-bot] WARNING: Using local/fallback database URL. Prisma Postgres may not be available.')
 }
 
 const adapter = new PrismaPostgresAdapter({ connectionString })
