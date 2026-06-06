@@ -1,12 +1,13 @@
 @echo off
-title Mnemo Discord Bot Launcher
-echo ===================================================
-echo Starting Mnemo Discord Bot in crash-recovery loop...
-echo ===================================================
-:loop
-cd /d "c:\Users\anuro\Documents\Mnemo"
-node start-bot.js
+echo ========================================================
+echo Starting Mnemo Discord Bot...
+echo Please KEEP THIS WINDOW OPEN to keep the bot online!
+echo ========================================================
 echo.
-echo [Warning] Bot crashed or exited. Restarting in 5 seconds...
+
+:start
+node ./node_modules/tsx/dist/cli.mjs discord-bot/index.ts
+echo.
+echo Bot crashed or stopped! Restarting in 5 seconds...
 timeout /t 5
-goto loop
+goto start

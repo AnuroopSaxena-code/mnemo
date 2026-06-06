@@ -8,6 +8,10 @@ dotenv.config()
 const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 const botToken = process.env.DISCORD_BOT_TOKEN!
 
+// In-memory cache for autocomplete to beat the 3-second Discord limit
+const repoCache = new Map<string, { repos: any[], timestamp: number }>()
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
 // Common headers for bot request to Next.js API
 const apiHeaders = {
   'Content-Type': 'application/json',
@@ -53,20 +57,49 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isAutocomplete()) {
     if (interaction.commandName === 'set-repo') {
       try {
-        const user = await resolveUserOnly(interaction.user.id, interaction.user.username)
-        if (!user) {
-          return interaction.respond([])
+        const userId = interaction.user.id
+        const focusedValue = interaction.options.getFocused()
+        let choices: any[] = []
+
+        // Use cache if available
+        if (repoCache.has(userId) && Date.now() - repoCache.get(userId)!.timestamp < CACHE_TTL) {
+          choices = repoCache.get(userId)!.repos
+        } else {
+          // Verify user first to prevent hitting the DB unnecessarily if they aren't linked
+          const user = await resolveUserOnly(userId, interaction.user.username)
+          if (!user) {
+            return interaction.respond([])
+          }
+
+          // Fetch in background but enforce a 2-second timeout for the Discord response
+          let isTimeout = false
+          const fetchPromise = fetch(`${appUrl}/api/workspace/discord/bot-api`, {
+            method: 'POST',
+            headers: apiHeaders,
+            body: JSON.stringify({ action: 'get-repos', discordUserId: userId, discordUsername: interaction.user.username })
+          }).then(async (res) => {
+            if (res.ok) {
+              const data = await res.json()
+              const fetchedRepos = (data.repos || []).map((r: any) => ({ name: r.fullName, value: r.fullName }))
+              repoCache.set(userId, { repos: fetchedRepos, timestamp: Date.now() })
+              return fetchedRepos
+            }
+            return []
+          }).catch(err => {
+            console.error('Fetch error during autocomplete:', err)
+            return []
+          })
+
+          const timeoutPromise = new Promise<any[]>((resolve) => {
+            setTimeout(() => {
+              isTimeout = true
+              resolve([{ name: "⚠️ Loading repos... Please wait 5s and try typing again.", value: "LOADING" }])
+            }, 2000)
+          })
+
+          choices = await Promise.race([fetchPromise, timeoutPromise])
         }
 
-        const res = await fetch(`${appUrl}/api/workspace/discord/bot-api`, {
-          method: 'POST',
-          headers: apiHeaders,
-          body: JSON.stringify({ action: 'get-repos', discordUserId: interaction.user.id, discordUsername: interaction.user.username })
-        })
-        const data = await res.json()
-        if (!res.ok) return interaction.respond([])
-
-        const choices = (data.repos || []).map((r: any) => ({ name: r.fullName, value: r.fullName }))
         if (choices.length === 0) {
           return interaction.respond([{
             name: "⚠️ No repos connected. Connect on the website first.",
@@ -74,7 +107,6 @@ client.on('interactionCreate', async (interaction) => {
           }])
         }
 
-        const focusedValue = interaction.options.getFocused()
         const filtered = choices.filter((choice: any) => 
           choice.name.toLowerCase().includes(focusedValue.toLowerCase())
         ).slice(0, 25)
