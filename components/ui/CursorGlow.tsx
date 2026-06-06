@@ -93,8 +93,8 @@ export function CursorGlow() {
       opacity: 1,
     },
     hover: {
-      width: 44,
-      height: 44,
+      width: 28,
+      height: 28,
       borderRadius: "50%",
       rotate: 0,
       backgroundColor: "rgba(0,0,0,0)",
