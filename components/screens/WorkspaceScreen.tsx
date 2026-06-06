@@ -9,6 +9,7 @@ import { AskMemoryTab } from "@/components/workspace/AskMemoryTab";
 import { TimelineTab } from "@/components/workspace/TimelineTab";
 import { OnboardingTab } from "@/components/workspace/OnboardingTab";
 import { SourcesTab } from "@/components/workspace/SourcesTab";
+import { ConnectSocialsTab } from "@/components/workspace/ConnectSocialsTab";
 import { DecisionDetailScreen } from "@/components/screens/DecisionDetailScreen";
 import { ConnectRepoModal } from "@/components/screens/ConnectRepoModal";
 import type { DecisionRecord, SourceType } from "@/lib/types";
@@ -24,7 +25,7 @@ const suggestedQueries = [
   "why is auth handled at the gateway?"
 ];
 
-type WorkspaceTab = "overview" | "premortem" | "ask" | "timeline" | "onboarding" | "sources";
+type WorkspaceTab = "overview" | "premortem" | "ask" | "timeline" | "onboarding" | "sources" | "socials";
 
 export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
   const [activeRepo, setActiveRepo] = useState(repoName);
@@ -228,6 +229,18 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
                 transition={{ duration: 0.2 }}
               >
                 <SourcesTab activeRepo={activeRepo} />
+              </motion.div>
+            )}
+
+            {activeTab === "socials" && (
+              <motion.div
+                key="socials"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ConnectSocialsTab />
               </motion.div>
             )}
           </AnimatePresence>

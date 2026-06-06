@@ -21,6 +21,7 @@ const TABS = [
   { id: "timeline", label: "decision timeline", index: "03" },
   { id: "onboarding", label: "onboarding brief", index: "04" },
   { id: "sources", label: "source inbox", index: "05" },
+  { id: "socials", label: "connect socials", index: "06" },
 ];
 
 async function handleLogout() {
@@ -51,34 +52,27 @@ export function Sidebar({
         background: "var(--color-surface-1)",
       }}
     >
-      {/* Wordmark + amber pulse dot */}
+      {/* Wordmark — click to go to overview */}
       <header
-        className="flex items-center"
-        style={{ padding: "0 24px", gap: 10, marginTop: 16, marginBottom: 40 }}
+        style={{ padding: "0 24px", marginTop: 16, marginBottom: 40 }}
       >
-        <h1
-          className="font-display"
+        <button
+          className="btn-press font-display"
+          onClick={() => onTabSelect("overview")}
           style={{
+            background: "none",
+            border: "none",
+            padding: 0,
             fontSize: 20,
             color: "var(--color-accent)",
-            margin: 0,
             fontWeight: 400,
             letterSpacing: "0.12em",
+            cursor: "pointer",
           }}
+          aria-label="Go to workspace overview"
         >
           mnemo
-        </h1>
-        <span
-          className="amber-pulse-dot"
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: "var(--color-accent)",
-            flexShrink: 0,
-          }}
-          aria-label="Memory active"
-        />
+        </button>
       </header>
 
       {/* Tab navigation */}
@@ -331,22 +325,23 @@ export function MobileSidebar({
           style={{ marginBottom: 20 }}
         >
           <div className="flex items-center" style={{ gap: 10 }}>
-            <span
-              className="font-display"
-              style={{ fontSize: 18, color: "var(--color-accent)" }}
+            <button
+              className="btn-press font-display"
+              onClick={() => { onTabSelect("overview"); onClose(); }}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                fontSize: 18,
+                color: "var(--color-accent)",
+                fontWeight: 400,
+                letterSpacing: "0.12em",
+                cursor: "pointer",
+              }}
+              aria-label="Go to workspace overview"
             >
               mnemo
-            </span>
-            <span
-              className="amber-pulse-dot"
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "var(--color-accent)",
-              }}
-              aria-hidden="true"
-            />
+            </button>
           </div>
           <span
             className="font-mono"

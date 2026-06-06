@@ -49,6 +49,14 @@ const QUICK_ACTIONS = [
       "Generate instant contextual briefs for new engineers joining specific services or domains in the monorepo.",
     icon: "◌",
   },
+  {
+    id: "socials",
+    index: "06",
+    title: "Connect Socials",
+    description:
+      "Bring Mnemo into Discord and Slack. Query memory, run pre-mortems, and receive stale decision alerts directly in your team\u0027s chat.",
+    icon: "◈",
+  },
 ];
 
 const HOW_IT_WORKS = [
