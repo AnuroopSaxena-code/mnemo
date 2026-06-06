@@ -138,7 +138,7 @@ export function SourcesTab({ activeRepo }: SourcesTabProps) {
   }
 
   return (
-    <div style={{ padding: "32px", display: "flex", flexDirection: "column", gap: "24px", minHeight: "100vh", maxWidth: "900px", margin: "0 auto" }}>
+    <div style={{ padding: "32px", display: "flex", flexDirection: "column", gap: "24px", minHeight: "100vh", maxWidth: "1400px", margin: "0 auto" }}>
       <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h2 className="font-heading" style={{ fontSize: "clamp(18px, 2.5vw, 24px)", color: "var(--color-ink)", fontWeight: 400, margin: "0 0 4px" }}>

@@ -83,7 +83,7 @@ export function OnboardingTab({
         flexDirection: "column",
         gap: "24px",
         minHeight: "100vh",
-        maxWidth: "900px",
+        maxWidth: "1400px",
         margin: "0 auto",
       }}
     >

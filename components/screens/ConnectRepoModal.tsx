@@ -64,14 +64,18 @@ export function ConnectRepoModal({ connectedRepos = [], onConnected, onClose }: 
       return;
     }
 
-    const totalChanges = toConnect.length + toDisconnect.length;
-    if (totalChanges === 1) {
-      const changedRepoId = toConnect[0] || toDisconnect[0];
+    let scanMessage = "";
+    if (toConnect.length === 1) {
+      const changedRepoId = toConnect[0];
       const repo = repos.find(r => r.id === changedRepoId);
-      setScanningRepo(repo ? repo.fullName : "repository");
-    } else {
-      setScanningRepo(`${totalChanges} repositories`);
+      scanMessage = `scanning ${repo ? repo.fullName : "repository"} for decisions...`;
+    } else if (toConnect.length > 1) {
+      scanMessage = `scanning ${toConnect.length} repositories for decisions...`;
+    } else if (toDisconnect.length > 0) {
+      scanMessage = "updating connections...";
     }
+
+    setScanningRepo(scanMessage);
 
     setScanning(true);
 
@@ -154,7 +158,7 @@ export function ConnectRepoModal({ connectedRepos = [], onConnected, onClose }: 
                   className="font-mono blink-cursor"
                   style={{ fontSize: 13, color: "var(--color-accent)" }}
                 >
-                  scanning {scanningRepo} for decisions...
+                  {scanningRepo}
                 </p>
               </div>
             </motion.div>
@@ -201,7 +205,7 @@ export function ConnectRepoModal({ connectedRepos = [], onConnected, onClose }: 
                   fontWeight: 400,
                 }}
               >
-                Connect a repository
+                Connect or Disconnect a repository
               </h2>
 
               <div

@@ -61,7 +61,7 @@ export function ConnectSocialsTab() {
         display: "flex",
         flexDirection: "column",
         gap: "56px",
-        maxWidth: "1024px",
+        maxWidth: "1400px",
         margin: "0 auto",
       }}
     >

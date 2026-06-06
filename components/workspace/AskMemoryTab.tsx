@@ -74,9 +74,9 @@ export function AskMemoryTab({
         padding: "32px",
         display: "flex",
         flexDirection: "column",
-        gap: "24px",
+        gap: "40px",
         minHeight: "100vh",
-        maxWidth: "900px",
+        maxWidth: "1400px",
         margin: "0 auto",
       }}
     >
