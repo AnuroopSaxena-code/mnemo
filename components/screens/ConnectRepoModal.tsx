@@ -1,20 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ConnectRepoModalProps {
-  onConnected: (repoName: string) => void;
+  connectedRepos?: any[];
+  onConnected: (repoName?: string) => void;
   onClose?: () => void;
 }
 
-import { useEffect } from "react";
-
-export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps) {
+export function ConnectRepoModal({ connectedRepos = [], onConnected, onClose }: ConnectRepoModalProps) {
   const [scanning, setScanning] = useState(false);
   const [scanningRepo, setScanningRepo] = useState("");
-  const [repos, setRepos] = useState<{ id: string; name: string }[]>([]);
+  const [repos, setRepos] = useState<{ id: string; name: string; fullName: string }[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<Set<string>>(new Set());
+  const [initialSelected, setInitialSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +23,19 @@ export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps
         const res = await fetch("/api/repos/available");
         if (res.ok) {
           const data = await res.json();
-          setRepos(data.repos || []);
+          const fetchedRepos = data.repos || [];
+          setRepos(fetchedRepos);
+          
+          // Determine which ones are already connected
+          const connectedNames = new Set(connectedRepos.map(r => typeof r === "string" ? r : r.fullName));
+          const initialIds = new Set<string>();
+          fetchedRepos.forEach((r: any) => {
+            if (connectedNames.has(r.fullName)) {
+              initialIds.add(r.id);
+            }
+          });
+          setSelectedRepos(initialIds);
+          setInitialSelected(initialIds);
         }
       } catch (err) {
         console.error("Failed to load available repos:", err);
@@ -32,7 +44,7 @@ export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps
       }
     }
     fetchRepos();
-  }, []);
+  }, [connectedRepos]);
 
   function toggleSelection(repoId: string) {
     setSelectedRepos((prev) => {
@@ -44,44 +56,60 @@ export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps
   }
 
   async function startScan() {
-    if (selectedRepos.size === 0) return;
+    const toConnect = Array.from(selectedRepos).filter(id => !initialSelected.has(id));
+    const toDisconnect = Array.from(initialSelected).filter(id => !selectedRepos.has(id));
 
-    const selectedRepoObjects = repos.filter((r) => selectedRepos.has(r.id));
-    if (selectedRepos.size === 1) {
-      setScanningRepo((selectedRepoObjects[0] as any).fullName);
+    if (toConnect.length === 0 && toDisconnect.length === 0) {
+      onConnected();
+      return;
+    }
+
+    const totalChanges = toConnect.length + toDisconnect.length;
+    if (totalChanges === 1) {
+      const changedRepoId = toConnect[0] || toDisconnect[0];
+      const repo = repos.find(r => r.id === changedRepoId);
+      setScanningRepo(repo ? repo.fullName : "repository");
     } else {
-      setScanningRepo(`${selectedRepos.size} repositories`);
+      setScanningRepo(`${totalChanges} repositories`);
     }
 
     setScanning(true);
 
     try {
-      const connectPromises = selectedRepoObjects.map(async (repo) => {
-        const name = (repo as any).fullName;
+      const connectPromises = toConnect.map(async (repoId) => {
+        const repo = repos.find(r => r.id === repoId) as any;
+        const name = repo.fullName;
         const res = await fetch("/api/repos/connect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ repoId: repo.id, fullName: name, isPrivate: false })
         });
         if (res.ok) {
-          // Run sync comments after connection
           await fetch("/api/repos/sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ fullName: name })
           });
-        } else {
-          console.error(`Failed to connect ${name}`);
         }
       });
 
-      await Promise.all(connectPromises);
+      const disconnectPromises = toDisconnect.map(async (repoId) => {
+        await fetch("/api/repos/disconnect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ repoId })
+        });
+      });
 
-      const firstName = (selectedRepoObjects[0] as any).fullName;
-      setTimeout(() => onConnected(firstName), 1800);
+      await Promise.all([...connectPromises, ...disconnectPromises]);
+
+      const selectedObjects = repos.filter((r) => selectedRepos.has(r.id));
+      const newActiveName = selectedObjects.length > 0 ? selectedObjects[0].fullName : undefined;
+      
+      setTimeout(() => onConnected(newActiveName), 1800);
     } catch (err) {
       console.error(err);
-      alert("Failed connecting repositories.");
+      alert("Failed updating repositories.");
       setScanning(false);
     }
   }
@@ -143,14 +171,20 @@ export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps
                   onClick={onClose}
                   style={{
                     position: "absolute",
-                    top: -16,
-                    right: -16,
-                    background: "transparent",
-                    border: "none",
+                    top: 16,
+                    right: 16,
+                    background: "var(--color-surface-2)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "50%",
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     color: "var(--color-ink)",
-                    fontSize: 28,
+                    fontSize: 18,
                     cursor: "pointer",
-                    padding: 8,
+                    zIndex: 10,
                   }}
                   className="btn-press"
                   aria-label="Close"
@@ -235,7 +269,7 @@ export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps
 
               {/* Continue Action */}
               <AnimatePresence>
-                {selectedRepos.size > 0 && !loading && (
+                {(!loading) && (
                   <motion.div
                     initial={{ opacity: 0, height: 0, marginTop: 0 }}
                     animate={{ opacity: 1, height: "auto", marginTop: 24 }}
@@ -257,7 +291,7 @@ export function ConnectRepoModal({ onConnected, onClose }: ConnectRepoModalProps
                         fontWeight: 600,
                       }}
                     >
-                      Continue with {selectedRepos.size} selected {selectedRepos.size === 1 ? "repo" : "repos"}
+                      Save connections ({selectedRepos.size} selected)
                     </button>
                   </motion.div>
                 )}

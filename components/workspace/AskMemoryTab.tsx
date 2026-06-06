@@ -188,39 +188,57 @@ export function AskMemoryTab({
         onSubmit={handleFormSubmit}
         style={{ width: "100%", position: "relative" }}
       >
-        <input
-          ref={inputRef}
+        <textarea
+          ref={inputRef as any}
           id="query-input"
           className="input-minimal"
           style={{
             width: "100%",
             fontSize: "clamp(16px, 2.5vw, 22px)",
-            padding: "16px 0",
+            padding: "16px 60px 16px 0",
             fontFamily: "var(--font-mono)",
+            border: "none",
             borderBottom: "1px solid var(--color-border)",
             background: "transparent",
             color: "var(--color-ink)",
+            resize: "vertical",
+            minHeight: "64px",
+            maxHeight: "300px",
+            lineHeight: 1.4,
           }}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            e.target.style.height = "auto";
+            e.target.style.height = `${Math.min(e.target.scrollHeight, 300)}px`;
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
           placeholder="why did we move off Kafka?"
           autoFocus
+          rows={1}
         />
         <button
           type="submit"
-          className="font-mono"
+          className="font-mono btn-press"
           style={{
             position: "absolute",
             right: 0,
             bottom: "16px",
-            background: "transparent",
-            border: "none",
+            background: "var(--color-surface-2)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius)",
             color: "var(--color-accent)",
-            fontSize: "14px",
+            fontSize: "12px",
+            padding: "4px 12px",
             cursor: "pointer",
           }}
         >
-          \u23ce
+          Ask
         </button>
       </form>
 

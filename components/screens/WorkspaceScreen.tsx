@@ -278,9 +278,10 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
       <AnimatePresence>
         {showConnectModal && (
           <ConnectRepoModal
+            connectedRepos={repos}
             onConnected={(name) => {
               setShowConnectModal(false);
-              setActiveRepo(name);
+              if (name) setActiveRepo(name);
               checkAuth();
             }}
             onClose={() => setShowConnectModal(false)}

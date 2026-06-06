@@ -66,8 +66,8 @@ export function MnemoApp({ initialDecisions }: MnemoAppProps) {
     window.location.href = "/api/auth/github";
   }
 
-  function handleConnected(name: string) {
-    setRepoName(name);
+  function handleConnected(name?: string) {
+    if (name) setRepoName(name);
     checkAuth();
   }
 
