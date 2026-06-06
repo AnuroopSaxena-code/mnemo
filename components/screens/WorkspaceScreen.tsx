@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar, MobileSidebar } from "@/components/workspace/Sidebar";
+import { OverviewTab } from "@/components/workspace/OverviewTab";
 import { PreMortemTab } from "@/components/workspace/PreMortemTab";
 import { AskMemoryTab } from "@/components/workspace/AskMemoryTab";
 import { TimelineTab } from "@/components/workspace/TimelineTab";
@@ -23,11 +24,11 @@ const suggestedQueries = [
   "why is auth handled at the gateway?"
 ];
 
-type WorkspaceTab = "premortem" | "ask" | "timeline" | "onboarding" | "sources";
+type WorkspaceTab = "overview" | "premortem" | "ask" | "timeline" | "onboarding" | "sources";
 
 export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
   const [activeRepo, setActiveRepo] = useState(repoName);
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("premortem");
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
   const [decisionsList, setDecisionsList] = useState<DecisionRecord[]>(decisions);
   const [dbDecisions, setDbDecisions] = useState<DecisionRecord[]>([]);
   const [authInfo, setAuthInfo] = useState<any>(null);
@@ -132,6 +133,22 @@ export function WorkspaceScreen({ repoName, decisions }: WorkspaceScreenProps) {
         {/* Main Workspace Canvas Area */}
         <main style={{ flex: 1, minHeight: "100vh", overflowY: "auto" }}>
           <AnimatePresence mode="wait">
+            {activeTab === "overview" && (
+              <motion.div
+                key={`overview-${activeRepo}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <OverviewTab
+                  activeRepo={activeRepo}
+                  decisions={activeDecisionsList}
+                  onTabSelect={(tab) => setActiveTab(tab as WorkspaceTab)}
+                />
+              </motion.div>
+            )}
+
             {activeTab === "premortem" && (
               <motion.div
                 key={`premortem-${activeRepo}`}

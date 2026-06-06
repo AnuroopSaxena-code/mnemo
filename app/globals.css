@@ -488,3 +488,11 @@ textarea:focus-visible {
 .panel-tab:hover {
   width: 4px;
 }
+
+/* ─── Custom Cursor Hide ────────────────────────────────── */
+@media (pointer: fine) {
+  * {
+    cursor: none !important;
+  }
+}
+

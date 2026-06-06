@@ -15,6 +15,7 @@ interface SidebarProps {
 }
 
 const TABS = [
+  { id: "overview", label: "workspace overview", index: "00" },
   { id: "premortem", label: "pre-mortem agent", index: "01" },
   { id: "ask", label: "ask memory", index: "02" },
   { id: "timeline", label: "decision timeline", index: "03" },
