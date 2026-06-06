@@ -131,9 +131,9 @@ client.on('interactionCreate', async (interaction) => {
       commandName !== 'status'
     ) return
 
-    await interaction.deferReply()
-
     try {
+      await interaction.deferReply()
+
       // ─── Command: /status ───
       if (commandName === 'status') {
         const user = await resolveUserOnly(interaction.user.id, interaction.user.username)
@@ -306,22 +306,29 @@ client.on('interactionCreate', async (interaction) => {
 
     } catch (err: any) {
       console.error('Error handling slash command:', err)
-      return interaction.editReply(`An error occurred while handling your request: ${err.message || String(err)}`)
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: `An error occurred: ${err.message || String(err)}`, ephemeral: true })
+        } else {
+          await interaction.editReply(`An error occurred: ${err.message || String(err)}`)
+        }
+      } catch (replyErr) {
+        console.error('Failed to send error reply:', replyErr)
+      }
     }
   }
 
   // 3. Handle Button Interaction (Run Pre-merge Analysis)
   if (interaction.isButton()) {
     if (interaction.customId === 'run_premerge') {
-      await interaction.deferReply()
-
-      const guildId = interaction.guildId
-      const proposalText = interaction.message.embeds[0]?.description
-      if (!proposalText) {
-        return interaction.editReply('Could not retrieve proposal details.')
-      }
-
       try {
+        await interaction.deferReply()
+
+        const guildId = interaction.guildId
+        const proposalText = interaction.message.embeds[0]?.description
+        if (!proposalText) {
+          return interaction.editReply('Could not retrieve proposal details.')
+        }
         const user = await resolveWorkspaceAndUser(interaction.user.id, guildId, interaction.user.username)
         if (!user) {
           return interaction.editReply('Your Discord account is not connected to a Mnemo workspace.')
@@ -378,8 +385,16 @@ client.on('interactionCreate', async (interaction) => {
 
         return interaction.editReply({ embeds: [responseEmbed] })
       } catch (err: any) {
-        console.error('Error running pre-merge analysis:', err)
-        return interaction.editReply(`Failed to complete pre-merge analysis: ${err.message || String(err)}`)
+        console.error('Error handling button interaction:', err)
+        try {
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ content: `An error occurred: ${err.message || String(err)}`, ephemeral: true })
+          } else {
+            await interaction.editReply(`An error occurred: ${err.message || String(err)}`)
+          }
+        } catch (replyErr) {
+          console.error('Failed to send button error reply:', replyErr)
+        }
       }
     }
   }
